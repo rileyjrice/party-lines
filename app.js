@@ -486,7 +486,7 @@
       }
     }
     head.innerHTML = `<h2>${title}</h2><span class="count">${n} / 16 placed</span><span class="spacer"></span>${right}`;
-    $("who-note").textContent = note;
+    $("entry-note").textContent = note;
     const sealBtn = $("seal"); if (sealBtn) sealBtn.onclick = () => { confirmOpen = "seal"; renderConfirm(); };
     const clear = $("clear"); if (clear) clear.onclick = () => { confirmOpen = "clear"; renderConfirm(); };
   }
@@ -727,7 +727,6 @@
     $("entry-sec").hidden = !member || !(tab === "picks" || tab === "results");
     $("score").hidden = !member || !(tab === "picks" || tab === "compare");
     $("leaderboard").hidden = !member || tab !== "leaderboard";
-    if (!member || !(tab === "picks" || tab === "results")) $("who-note").textContent = "";
   }
   function renderAll() {
     renderChrome();

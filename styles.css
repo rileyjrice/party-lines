@@ -64,7 +64,8 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .seg { display: inline-flex; background: var(--surface-2); border-radius: 999px; padding: 3px; gap: 2px; }
 .seg button { border: 0; background: transparent; padding: 7px 16px; border-radius: 999px; font-weight: 600; font-size: 14px; color: var(--ink-2); }
 .seg button[aria-pressed="true"] { background: var(--surface); color: var(--ink); box-shadow: 0 1px 2px rgba(0,0,0,0.12); }
-.who-note { font-size: 13px; color: var(--ink-3); }
+.entry-note { margin: -6px 0 0; font-size: 13px; color: var(--ink-2); }
+.entry-note:empty { display: none; }
 
 /* The line */
 .board-wrap { background: var(--surface); border: 1px solid var(--rule); border-radius: 14px; padding-block: 18px 22px; }
