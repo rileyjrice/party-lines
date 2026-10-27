@@ -194,7 +194,7 @@
       if (!r.visible) {
         const s = document.createElement("div");
         s.className = "sealed";
-        s.innerHTML = `<span class="seal-icon">SEALED</span><span>${r.sealedHtml || ""}</span>`;
+        s.innerHTML = `<span class="seal-icon">HIDDEN</span><span>${r.sealedHtml || ""}</span>`;
         row.appendChild(s);
         plot.appendChild(row);
         return;
@@ -304,7 +304,7 @@
       const seal = document.createElement("div");
       seal.className = "map-seal";
       seal.hidden = true;
-      seal.innerHTML = '<span class="seal-icon">SEALED</span><span data-role="seal-text"></span>';
+      seal.innerHTML = '<span class="seal-icon">HIDDEN</span><span data-role="seal-text"></span>';
       fig.querySelector(".map-box").appendChild(seal);
       wrap.appendChild(fig);
     });
@@ -335,8 +335,8 @@
       const tally = fig.querySelector("[data-role=tally]");
       const seatsEl = fig.querySelector("[data-role=seats]");
       if (!visible) {
-        tally.textContent = "sealed";
-        seatsEl.innerHTML = `<div class="sb-track sealed-track"></div><div class="sb-labels"><span>Senate balance sealed</span></div>`;
+        tally.textContent = "hidden";
+        seatsEl.innerHTML = `<div class="sb-track sealed-track"></div><div class="sb-labels"><span>Senate balance hidden</span></div>`;
         return;
       }
       seatsEl.innerHTML = seatBar(seats(key));
@@ -362,7 +362,7 @@
       (st.also ? `<div class="tip-row">Also running: ${st.also}</div>` : "") +
       (st.winnerOnly ? `<div class="tip-row">Scored on winner only</div>` : "");
     const who = key === "results" ? "Result" : key === "me" ? "Your pick" : `${esc(row.name)}'s pick`;
-    if (!row.visible) return html + `<div class="tip-row">${who}: <b>sealed</b></div>`;
+    if (!row.visible) return html + `<div class="tip-row">${who}: <b>hidden</b></div>`;
     const p = docs[key].picks[ab];
     const v = signed(p);
     if (v === null) {
