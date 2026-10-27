@@ -139,7 +139,7 @@
   }
   function rowsFor() {
     const you = { key: "me", name: "You", visible: true };
-    const actual = { key: "results", name: "Actual", mapName: "Results", visible: true };
+    const actual = { key: "results", name: "Actual", mapName: "Official results", visible: true };
     if (tab === "results") return [actual];
     if (tab === "compare") {
       const t = target();
