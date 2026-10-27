@@ -289,7 +289,7 @@
       const svg = document.createElementNS(NS, "svg");
       svg.setAttribute("viewBox", "0 0 975 610");
       svg.setAttribute("role", "img");
-      svg.setAttribute("aria-label", key === "results" ? "Results map" : key === "me" ? "Your map" : `${label}'s map`);
+      svg.setAttribute("aria-label", key === "results" ? "Results map" : key === "me" ? "My map" : `${label}'s map`);
       mapPaths[key] = {};
       Object.keys(PATHS).forEach(ab => {
         const p = document.createElementNS(NS, "path");
@@ -361,7 +361,7 @@
       `<div class="tip-row">${st.L} (${lp}) vs ${st.R} (R)</div>` +
       (st.also ? `<div class="tip-row">Also running: ${st.also}</div>` : "") +
       (st.winnerOnly ? `<div class="tip-row">Scored on winner only</div>` : "");
-    const who = key === "results" ? "Result" : key === "me" ? "Your pick" : `${esc(row.name)}'s pick`;
+    const who = key === "results" ? "Result" : key === "me" ? "My pick" : `${esc(row.name)}'s pick`;
     if (!row.visible) return html + `<div class="tip-row">${who}: <b>sealed</b></div>`;
     const p = docs[key].picks[ab];
     const v = signed(p);
@@ -422,6 +422,7 @@
       const card = document.createElement("article");
       card.className = "card";
       card.dataset.st = st.id;
+      if (st.ind) card.dataset.ind = "";
       card.innerHTML = `
         <div class="card-top">
           <h3>${st.name}</h3>${st.rcv ? '<span class="tag">Ranked choice</span>' : ""}${st.winnerOnly ? '<span class="tag">Winner only</span>' : ""}
@@ -443,6 +444,7 @@
     document.querySelectorAll(".card").forEach(card => {
       const st = BY_ID[card.dataset.st];
       const p = picks[st.id] || {};
+      card.dataset.side = p.side || ""; // tints the margin box's focus ring to the chosen party
       card.querySelectorAll(".cand").forEach(b => {
         b.setAttribute("aria-pressed", String(p.side === b.dataset.side));
         b.disabled = !canEdit;
@@ -471,7 +473,7 @@
       if (n) right = '<button type="button" class="btn ghost" id="clear">Clear results</button>';
       note = "Fill these in as races are called. Everyone sees them the moment you enter them.";
     } else {
-      title = "Your picks";
+      title = "My picks";
       const d = docs.me;
       if (d.sealed) {
         right = `<span class="locked-note"><span class="seal-icon">SEALED</span>Sealed${sealedWhen(d.sealed_at)}. These are final.</span>`;
@@ -620,7 +622,7 @@
     const opts = GROUPS.map(g => `<option value="${g.key}"${me.grp === g.key ? " selected" : ""}>${g.name}</option>`).join("");
     const mine = isAdmin()
       ? `<span class="my-grp">You're on every group's leaderboard as host</span>`
-      : `<label class="my-grp">Your group <select id="my-grp">${opts}</select></label>`;
+      : `<label class="my-grp">My group <select id="my-grp">${opts}</select></label>`;
     return `<div class="lb-bar"><div class="seg" role="group" aria-label="Which leaderboard">${btns}</div>${mine}</div>` +
       `<p class="msg error" id="grp-msg" role="alert"></p>`;
   }

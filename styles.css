@@ -269,3 +269,7 @@ td.win { font-weight: 700; }
 .lb-bar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 16px; }
 .my-grp { display: inline-flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; color: var(--ink-2); }
 .my-grp select { font: inherit; font-size: 14px; font-weight: 400; padding: 6px 8px; border: 1.5px solid var(--rule); border-radius: 8px; background: var(--bg); color: var(--ink); max-width: 100%; }
+
+/* Margin box focus ring follows the chosen candidate: blue (Dem), gold (independent), red (Rep) */
+.card[data-side="R"] .by input:focus-visible { outline-color: var(--red); }
+.card[data-ind][data-side="L"] .by input:focus-visible { outline-color: var(--gold); }
