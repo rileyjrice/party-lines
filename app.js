@@ -31,7 +31,7 @@
   // ---- state ----
   let session = null, me = null, booted = false, handledUid = undefined;
   let players = [], board = [];
-  const docs = { me: emptyDoc(), them: emptyDoc(), results: { picks: {} } };
+  const docs = { me: emptyDoc(), them: emptyDoc(), results: { picks: {}, final: false } };
   let themFor = null;
   const dirty = {}, inflight = {}, again = {}, timers = {};
   let channel = null, refreshT = null, pollT = null;
@@ -140,7 +140,7 @@
   function rowsFor() {
     const you = { key: "me", name: "You", visible: true };
     const actual = { key: "results", name: "Actual", mapName: "Official results", visible: true };
-    if (tab === "results") return [actual];
+    if (tab === "results" || tab === "leaderboard") return [actual];
     if (tab === "compare") {
       const t = target();
       if (!t) return [you, actual];
@@ -313,6 +313,7 @@
   function renderMaps(rows) {
     const sig = rows.map(r => r.key + ":" + r.name).join("|");
     if (sig !== mapSig) { hideTip(); buildMaps(rows); mapSig = sig; }
+    $("maps-title").textContent = rows.length === 1 ? "The Map" : "The Maps";
     rows.forEach(r => {
       const key = r.key;
       const fig = $("maps").querySelector(`.map-panel[data-key="${key}"]`);
@@ -470,8 +471,14 @@
     let title, right = "", note = "";
     if (key === "results") {
       title = "Actual results";
-      if (n) right = '<button type="button" class="btn ghost" id="clear">Clear results</button>';
-      note = "Fill these in as races are called. Everyone sees them the moment you enter them.";
+      const fin = docs.results.final;
+      right = (n && !fin ? '<button type="button" class="btn ghost" id="clear">Clear results</button>' : "") +
+        (fin
+          ? '<span class="locked-note"><span class="seal-icon">FINAL</span>Marked final.</span><button type="button" class="btn ghost" id="unfinal">Reopen</button>'
+          : (n ? '<button type="button" class="btn" id="final">Mark results final</button>' : ""));
+      note = fin
+        ? "The leaderboard shows these as the final standings. Reopen if a result needs to change."
+        : "Fill these in as races are called. Everyone sees them the moment you enter them.";
     } else {
       title = "Your picks";
       const d = docs.me;
@@ -491,6 +498,8 @@
     $("entry-note").textContent = note;
     const sealBtn = $("seal"); if (sealBtn) sealBtn.onclick = () => { confirmOpen = "seal"; renderConfirm(); };
     const clear = $("clear"); if (clear) clear.onclick = () => { confirmOpen = "clear"; renderConfirm(); };
+    const fin = $("final"); if (fin) fin.onclick = () => { confirmOpen = "final"; renderConfirm(); };
+    const unfin = $("unfinal"); if (unfin) unfin.onclick = () => setFinal(false);
   }
   function renderConfirm() {
     const slot = $("confirm-slot");
@@ -502,6 +511,13 @@
       slot.innerHTML = `<div class="confirm"><p>Clear ${what}? This can't be undone.</p><button type="button" class="btn" id="clear-yes">Clear</button><button type="button" class="btn ghost" id="clear-no">Cancel</button></div>`;
       $("clear-yes").onclick = () => { docs[key].picks = {}; confirmOpen = false; queueWrite(key); renderAll(); };
       $("clear-no").onclick = () => { confirmOpen = false; renderConfirm(); };
+      return;
+    }
+    if (confirmOpen === "final" && key === "results" && isAdmin() && !docs.results.final) {
+      const n = entries("results").length;
+      slot.innerHTML = `<div class="confirm"><p>Mark results final? The leaderboard will tell everyone these are the final standings.${n < 16 ? ` Only ${n} of 16 races have a result.` : ""} You can reopen later if something changes.</p><button type="button" class="btn" id="final-yes">Mark final</button><button type="button" class="btn ghost" id="final-no">Cancel</button></div>`;
+      $("final-yes").onclick = () => setFinal(true);
+      $("final-no").onclick = () => { confirmOpen = false; renderConfirm(); };
       return;
     }
     if (confirmOpen === "seal" && key === "me" && editable() && complete(docs.me.picks)) {
@@ -667,7 +683,9 @@
     const byMiss = placeify(rows.filter(r => r.avg_miss !== null).map(r => ({ ...r })).sort((a, b) => (missKey(a) - missKey(b)) || byName(a, b)),
       (a, b) => missKey(a) === missKey(b));
     const tr = (r, cells) => `<tr class="${r.id === uid() ? "me" : ""}"><td class="place">${medal(r.place)}</td><td>${esc(r.display_name)}${you(r.id)}</td>${cells}</tr>`;
-    html += `<p class="panel-lede">${racesIn} of 16 races in · ${rows.length} sealed player${rows.length === 1 ? "" : "s"}.</p>`;
+    html += docs.results.final
+      ? `<p class="lb-status final"><span class="seal-icon">FINAL</span>All results are in. These are the final standings. · ${rows.length} sealed player${rows.length === 1 ? "" : "s"}</p>`
+      : `<p class="lb-status"><span class="live-dot" aria-hidden="true"></span><span><b>Results are still coming in</b> · ${racesIn} of 16 races called. Standings may change as more races are called. · ${rows.length} sealed player${rows.length === 1 ? "" : "s"}</span></p>`;
     html += `<div class="boards">` +
       `<div class="board"><h3>Most winners called</h3><p class="hint">If players call the same number of winners, whoever's margins were closer to the real results ranks higher (see Closest margins).</p><div class="table-wrap"><table><thead><tr><th></th><th>Player</th><th>Winners called</th></tr></thead><tbody>` +
         byWins.map(r => tr(r, `<td class="m">${r.called} / ${racesIn}</td>`)).join("") +
@@ -724,7 +742,10 @@
     document.querySelector('#tabs [data-tab="results"]').hidden = !isAdmin();
     document.querySelectorAll("#tabs button").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.tab === tab)));
     const game = member && (tab === "picks" || tab === "compare" || tab === "results");
-    $("maps-sec").hidden = !game;
+    // The leaderboard shows the official results map, updating live as races are called
+    const boardMap = member && tab === "leaderboard";
+    $("maps-sec").hidden = !(game || boardMap);
+    $("maps-sec").classList.toggle("solo", boardMap);
     $("line-sec").hidden = !game;
     $("entry-sec").hidden = !member || !(tab === "picks" || tab === "results");
     $("score").hidden = !member || !(tab === "picks" || tab === "compare");
@@ -733,7 +754,13 @@
   function renderAll() {
     renderChrome();
     if (!me) return;
-    if (tab === "leaderboard") { renderBoard(); return; }
+    if (tab === "leaderboard") {
+      const rows = rowsFor();
+      rowByKey = Object.fromEntries(rows.map(r => [r.key, r]));
+      renderMaps(rows);
+      renderBoard();
+      return;
+    }
     if (tab === "rules") return;
     renderCompareBar();
     const rows = rowsFor();
@@ -831,6 +858,14 @@
     if (dirty[key] && !inflight[key]) await flush(key);
     while (inflight[key]) await new Promise(r => setTimeout(r, 80));
   }
+  async function setFinal(value) {
+    confirmOpen = false;
+    await settle("results");
+    const { data, error } = await sb.from("results").update({ final: value }).eq("id", 1).select("final");
+    if (error || !data || !data.length) entryError = (error && error.message) || "Only admins can mark results final.";
+    else { docs.results.final = !!data[0].final; entryError = ""; }
+    renderAll();
+  }
   async function seal() {
     const btn = $("seal-yes");
     if (btn) btn.disabled = true;
@@ -863,8 +898,8 @@
       const { data } = await sb.from("picks").select("races, sealed, sealed_at").eq("user_id", uid()).maybeSingle();
       docs.me = norm(data);
     } else if (key === "results") {
-      const { data } = await sb.from("results").select("races").eq("id", 1).maybeSingle();
-      docs.results = { picks: norm(data).picks };
+      const { data } = await sb.from("results").select("races, final").eq("id", 1).maybeSingle();
+      docs.results = { picks: norm(data).picks, final: !!(data && data.final) };
     }
   }
   async function refreshLists() {
@@ -896,10 +931,10 @@
   async function loadAll() {
     const [pk, rs] = await Promise.all([
       sb.from("picks").select("races, sealed, sealed_at").eq("user_id", uid()).maybeSingle(),
-      sb.from("results").select("races").eq("id", 1).maybeSingle(),
+      sb.from("results").select("races, final").eq("id", 1).maybeSingle(),
     ]);
     docs.me = norm(pk.data);
-    docs.results = { picks: norm(rs.data).picks };
+    docs.results = { picks: norm(rs.data).picks, final: !!(rs.data && rs.data.final) };
     themFor = null;
     docs.them = emptyDoc();
     await refreshLists();
@@ -918,7 +953,10 @@
         renderAll();
       })
       .on("postgres_changes", { event: "*", schema: "public", table: "results" }, payload => {
-        if (payload.new && !dirty.results && !inflight.results) docs.results = { picks: norm(payload.new).picks };
+        if (payload.new) {
+          if (!dirty.results && !inflight.results) docs.results.picks = norm(payload.new).picks;
+          docs.results.final = !!payload.new.final;
+        }
         scheduleRefresh();
         renderAll();
       })
@@ -948,7 +986,7 @@
       me = null;
       unsubscribe();
       players = []; board = [];
-      docs.me = emptyDoc(); docs.them = emptyDoc(); docs.results = { picks: {} };
+      docs.me = emptyDoc(); docs.them = emptyDoc(); docs.results = { picks: {}, final: false };
       setStatus("Not signed in", false);
       renderAll();
       return;

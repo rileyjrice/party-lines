@@ -273,3 +273,14 @@ td.win { font-weight: 700; }
 /* Margin box focus ring follows the chosen candidate: blue (Dem), gold (independent), red (Rep) */
 .card[data-side="R"] .by input:focus-visible { outline-color: var(--red); }
 .card[data-ind][data-side="L"] .by input:focus-visible { outline-color: var(--gold); }
+
+/* Official results map above the leaderboard: one map, centered, not full width */
+#maps-sec.solo { justify-self: center; width: 100%; max-width: 640px; }
+
+/* Leaderboard status: live while results come in, FINAL once marked */
+.lb-status { display: flex; align-items: flex-start; gap: 10px; margin: 0; padding: 10px 12px; border-radius: 10px; background: var(--surface-2); font-size: 14px; color: var(--ink-2); }
+.lb-status b { color: var(--ink); font-weight: 600; }
+.lb-status.final { align-items: center; color: var(--ink); }
+.live-dot { flex: none; width: 9px; height: 9px; margin-top: 6px; border-radius: 50%; background: var(--ok); box-shadow: 0 0 0 0 var(--ok); animation: live-pulse 1.8s ease-out infinite; }
+@keyframes live-pulse { 0% { box-shadow: 0 0 0 0 rgba(30, 122, 76, 0.55); } 70% { box-shadow: 0 0 0 7px rgba(30, 122, 76, 0); } 100% { box-shadow: 0 0 0 0 rgba(30, 122, 76, 0); } }
+@media (prefers-reduced-motion: reduce) { .live-dot { animation: none; } }

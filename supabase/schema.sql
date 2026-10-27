@@ -58,6 +58,8 @@ create table if not exists public.results (
   updated_at timestamptz not null default now(),
   updated_by uuid references auth.users (id) on delete set null
 );
+-- final: set by an admin once every race is in, so the leaderboard can say the standings are final
+alter table public.results add column if not exists final boolean not null default false;
 insert into public.results (id) values (1) on conflict (id) do nothing;
 
 -- ---------------------------------------------------------------------------
