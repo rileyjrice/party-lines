@@ -308,3 +308,6 @@ td.win { font-weight: 700; }
 .banner.urgent { border-color: var(--red); background: var(--red-wash); }
 .banner.urgent b { color: var(--red); }
 .banner.closed { border-color: var(--rule); border-style: dashed; }
+
+/* Copyright and credit line at the very bottom */
+.credit { margin: 0; text-align: center; font-size: 11px; color: var(--ink-3); letter-spacing: 0.02em; }
