@@ -322,3 +322,5 @@ td.win { font-weight: 700; }
 .banner.grp-check { border-color: var(--blue); }
 .banner.grp-check select { font: inherit; font-size: 14px; padding: 7px 8px; border: 1.5px solid var(--rule); border-radius: 8px; background: var(--bg); color: var(--ink); max-width: 100%; }
 .banner.grp-check .msg:empty { display: none; }
+.credit a { color: inherit; text-decoration: underline; text-underline-offset: 2px; }
+.credit a:hover { color: var(--ink); }
