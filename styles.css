@@ -361,3 +361,5 @@ tr.model .model-name { font-style: italic; }
 .d-actual { stroke: var(--ink); stroke-width: 1.5; stroke-dasharray: 3 3; }
 .d-actual-lab { font-family: var(--font-data); font-size: 9px; fill: var(--ink); text-anchor: middle; }
 .d-over { font-size: 14px; fill: var(--ink-3); text-anchor: middle; }
+/* The Rules intro runs wider than other panel intros */
+#rules .panel-lede { max-width: 90ch; }
