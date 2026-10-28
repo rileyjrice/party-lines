@@ -750,6 +750,7 @@
     $("entry-sec").hidden = !member || !(tab === "picks" || tab === "results");
     $("score").hidden = !member || !(tab === "picks" || tab === "compare");
     $("leaderboard").hidden = !member || tab !== "leaderboard";
+    $("compare-bar").hidden = !member || tab !== "compare";
   }
   function renderAll() {
     renderChrome();
