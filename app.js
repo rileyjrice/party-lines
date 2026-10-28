@@ -561,7 +561,7 @@
         right = `${touched ? '<button type="button" class="btn ghost" id="clear">Clear picks</button>' : ""}<button type="button" class="btn" id="seal" ${ok ? "" : "disabled"}>Seal picks</button>`;
         note = n === 16 && !ok
           ? "Every race needs a winner and a margin above 0 before you can seal."
-          : "Pick a winner, then type the margin. Select the winner again to clear a race. Picks close Tue, Nov 3 at 6:00 p.m. ET.";
+          : "Select a winner, then enter how many points you think they'll win by. For example, if you think they'll win 52% to 48%, enter 4. Click a winner again to clear a race.";
       }
     }
     head.innerHTML = `<h2>${title}</h2><span class="count">${n} / 16 placed</span><span class="spacer"></span>${right}`;
