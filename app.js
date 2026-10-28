@@ -491,7 +491,7 @@
         right = `${n ? '<button type="button" class="btn ghost" id="clear">Clear picks</button>' : ""}<button type="button" class="btn" id="seal" ${ok ? "" : "disabled"}>Seal picks</button>`;
         note = n === 16 && !ok
           ? "Every race needs a winner and a margin above 0 before you can seal."
-          : "Pick a winner, then type the margin. Tap the winner again to clear a race. Picks close Tue, Nov 3 at 6:00 p.m. ET.";
+          : "Pick a winner, then type the margin. Select the winner again to clear a race. Picks close Tue, Nov 3 at 6:00 p.m. ET.";
       }
     }
     head.innerHTML = `<h2>${title}</h2><span class="count">${n} / 16 placed</span><span class="spacer"></span>${right}`;
@@ -538,7 +538,7 @@
     const picks = docs[key].picks;
     const input = $("pts-" + id);
     if (picks[id] && picks[id].side === b.dataset.side) {
-      // tapping the selected candidate again clears this race
+      // selecting the chosen candidate again clears this race
       delete picks[id];
       if (input) { input.value = ""; input.blur(); }
       queueWrite(key);
