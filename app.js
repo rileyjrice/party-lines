@@ -46,7 +46,7 @@
   let confirmOpen = false, entryError = "";
   let tab = load("pl-tab") || "picks";
   let compareId = load("pl-compare");
-  let compareView = load("pl-cmpview") === "all" ? "all" : "one";
+  let compareView = load("pl-cmpview") === "one" ? "one" : "all";
   let everyone = []; // every sealed player's picks, for the Everyone view (visible once you've sealed)
   let lbFilter = load("pl-board") || "all";
   if (lbFilter !== "all" && !GROUP_BY[lbFilter]) lbFilter = "all";
@@ -888,9 +888,10 @@
     const W = 300, H = 104, padX = 14, axisH = 18, top = 14;
     const vals = rows.map(r => ({ id: r.user_id, v: signed((r.races || {})[st.id]) })).filter(x => x.v !== null).sort((a, b) => a.v - b.v);
     const actual = signed(docs.results.picks[st.id]);
-    const maxAbs = Math.max(0, ...vals.map(x => Math.abs(x.v)), actual === null ? 0 : Math.abs(actual));
-    const D = Math.max(10, Math.ceil((maxAbs + 0.5) / 5) * 5);
-    const x = v => padX + ((v + D) / (2 * D)) * (W - 2 * padX);
+    // Every race uses the same ±15 scale; picks past 15 sit at the edge, marked with an arrow
+    const D = 15;
+    const x = v => padX + ((Math.max(-D, Math.min(D, v)) + D) / (2 * D)) * (W - 2 * padX);
+    const overL = vals.some(d => d.v < -D), overR = vals.some(d => d.v > D);
     const room = H - axisH - top;
     // stack dots in columns one dot wide; shrink the dots if a stack would overflow
     const stack = r => {
@@ -904,10 +905,12 @@
     const lab = v => (v === 0 ? "0" : (v < 0 ? (st.ind ? "I" : "D") : "R") + "+" + Math.abs(v));
     let svg = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${st.name}: ${vals.length} picks">`;
     svg += `<line class="d-axis" x1="${padX}" x2="${W - padX}" y1="${base}" y2="${base}"/>`;
-    [-D, -D / 2, 0, D / 2, D].forEach(t => {
+    [-15, -10, -5, 0, 5, 10, 15].forEach(t => {
       svg += `<line class="d-tick" x1="${x(t)}" x2="${x(t)}" y1="${base}" y2="${base + 4}"/><text class="d-lab${t < 0 ? (st.ind ? " i" : " d") : t > 0 ? " r" : ""}" x="${x(t)}" y="${H - 3}">${lab(t)}</text>`;
     });
     svg += `<line class="d-zero" x1="${x(0)}" x2="${x(0)}" y1="${top - 6}" y2="${base}"/>`;
+    if (overL) svg += `<text class="d-over" x="${padX - 9}" y="${base - 2}">‹</text>`;
+    if (overR) svg += `<text class="d-over" x="${W - padX + 9}" y="${base - 2}">›</text>`;
     placed.forEach(d => {
       const cy = base - r - d.i * 2 * r, c = chipColor(st, d.v);
       const mine = d.id === uid();
