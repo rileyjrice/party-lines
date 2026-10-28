@@ -127,10 +127,21 @@
   </section>
 
   <div class="compare-bar" id="compare-bar" hidden>
-    <label for="compare-select">Compare with</label>
-    <select id="compare-select"></select>
+    <div class="seg" role="group" aria-label="Compare view" id="cmp-view">
+      <button type="button" data-view="one" aria-pressed="true">One on one</button>
+      <button type="button" data-view="all" aria-pressed="false">Everyone</button>
+    </div>
+    <span class="cmp-one" id="cmp-one">
+      <label for="compare-select">Compare with</label>
+      <select id="compare-select"></select>
+    </span>
     <span class="compare-note" id="compare-note"></span>
   </div>
+
+  <section class="panel dist" id="dist-sec" aria-label="Everyone's picks" hidden>
+    <div class="dist-head" id="dist-head"></div>
+    <div class="dist-grid" id="dist-grid"></div>
+  </section>
 
   <div class="headline" id="headline" role="status" hidden></div>
 

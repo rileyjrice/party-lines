@@ -339,3 +339,22 @@ tr.model .model-name { font-style: italic; }
 .mtag.mt-fiftyplusone { background: #6D28D9; color: #FFFFFF; }
 .model-note { margin: 0; }
 .entry-switch-row { flex: 0 0 100%; }
+
+/* Compare → Everyone: dot plots, one per race */
+.cmp-one { display: inline-flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.dist-head { display: grid; gap: 6px; }
+.dist-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+@media (max-width: 900px) { .dist-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 420px) { .dist-grid { grid-template-columns: 1fr; } }
+.dist-card { margin: 0; border: 1px solid var(--rule); border-radius: 10px; padding: 8px 8px 4px; display: grid; gap: 2px; min-width: 0; background: var(--surface); }
+.dist-card figcaption { display: flex; align-items: center; gap: 6px; font-size: 13px; }
+.dist-card figcaption .count { margin-left: auto; font-size: 11px; color: var(--ink-3); }
+.dist-card svg { display: block; width: 100%; height: auto; overflow: visible; }
+.d-axis, .d-tick { stroke: var(--rule); stroke-width: 1; }
+.d-zero { stroke: var(--zero); stroke-width: 1.5; }
+.d-lab { font-family: var(--font-data); font-size: 9px; fill: var(--ink-3); text-anchor: middle; }
+.d-lab.d { fill: var(--blue); } .d-lab.r { fill: var(--red); } .d-lab.i { fill: var(--gold); }
+.d-dot { stroke: var(--surface); stroke-width: 0.8; cursor: pointer; }
+.d-ring { fill: none; stroke: var(--ink); stroke-width: 2; pointer-events: none; }
+.d-actual { stroke: var(--ink); stroke-width: 1.5; stroke-dasharray: 3 3; }
+.d-actual-lab { font-family: var(--font-data); font-size: 9px; fill: var(--ink); text-anchor: middle; }

@@ -46,6 +46,8 @@
   let confirmOpen = false, entryError = "";
   let tab = load("pl-tab") || "picks";
   let compareId = load("pl-compare");
+  let compareView = load("pl-cmpview") === "all" ? "all" : "one";
+  let everyone = []; // every sealed player's picks, for the Everyone view (visible once you've sealed)
   let lbFilter = load("pl-board") || "all";
   if (lbFilter !== "all" && !GROUP_BY[lbFilter]) lbFilter = "all";
 
@@ -881,11 +883,88 @@
     el.innerHTML = html;
   }
 
+  // ---- Everyone view: one dot plot per race ----
+  function distChart(st, rows, names) {
+    const W = 300, H = 104, padX = 14, axisH = 18, top = 14;
+    const vals = rows.map(r => ({ id: r.user_id, v: signed((r.races || {})[st.id]) })).filter(x => x.v !== null).sort((a, b) => a.v - b.v);
+    const actual = signed(docs.results.picks[st.id]);
+    const maxAbs = Math.max(0, ...vals.map(x => Math.abs(x.v)), actual === null ? 0 : Math.abs(actual));
+    const D = Math.max(10, Math.ceil((maxAbs + 0.5) / 5) * 5);
+    const x = v => padX + ((v + D) / (2 * D)) * (W - 2 * padX);
+    const room = H - axisH - top;
+    // stack dots in columns one dot wide; shrink the dots if a stack would overflow
+    const stack = r => {
+      const cols = {};
+      return vals.map(d => { const c = Math.round((x(d.v) - padX) / (2 * r)); const i = cols[c] = (cols[c] || 0) + 1; return { ...d, cx: padX + c * 2 * r, i: i - 1 }; });
+    };
+    let r = 5.5, placed = stack(r);
+    const tallest = Math.max(1, ...placed.map(d => d.i + 1));
+    if (tallest * 2 * r > room) { r = Math.max(1.6, room / (2 * tallest)); placed = stack(r); }
+    const base = H - axisH;
+    const lab = v => (v === 0 ? "0" : (v < 0 ? (st.ind ? "I" : "D") : "R") + "+" + Math.abs(v));
+    let svg = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${st.name}: ${vals.length} picks">`;
+    svg += `<line class="d-axis" x1="${padX}" x2="${W - padX}" y1="${base}" y2="${base}"/>`;
+    [-D, -D / 2, 0, D / 2, D].forEach(t => {
+      svg += `<line class="d-tick" x1="${x(t)}" x2="${x(t)}" y1="${base}" y2="${base + 4}"/><text class="d-lab${t < 0 ? (st.ind ? " i" : " d") : t > 0 ? " r" : ""}" x="${x(t)}" y="${H - 3}">${lab(t)}</text>`;
+    });
+    svg += `<line class="d-zero" x1="${x(0)}" x2="${x(0)}" y1="${top - 6}" y2="${base}"/>`;
+    placed.forEach(d => {
+      const cy = base - r - d.i * 2 * r, c = chipColor(st, d.v);
+      const mine = d.id === uid();
+      svg += `<circle class="d-dot${mine ? " mine" : ""}" cx="${d.cx}" cy="${cy}" r="${Math.max(1, r - 0.6)}" fill="${c.bg}" data-id="${d.id}" data-v="${d.v}" data-st="${st.id}"/>`;
+      if (mine) svg += `<circle class="d-ring" cx="${d.cx}" cy="${cy}" r="${r + 1.6}"/>`;
+    });
+    if (actual !== null) {
+      svg += `<line class="d-actual" x1="${x(actual)}" x2="${x(actual)}" y1="${top - 6}" y2="${base}"/><text class="d-actual-lab" x="${x(actual)}" y="${top - 8}">Actual ${fmt(st, actual)}</text>`;
+    }
+    svg += `</svg>`;
+    return `<figure class="dist-card"><figcaption><b>${st.name}</b>${st.winnerOnly ? '<span class="tag">Winner only</span>' : ""}<span class="count">${vals.length}</span></figcaption>${svg}</figure>`;
+  }
+  function renderDist() {
+    const head = $("dist-head"), grid = $("dist-grid");
+    if (!docs.me.sealed) {
+      head.innerHTML = `<p class="score-wait">Seal your picks to see everyone's. Once you've sealed, every sealed player's margins show up here, race by race.</p>`;
+      grid.innerHTML = "";
+      return;
+    }
+    const names = Object.fromEntries(players.map(p => [p.id, p.display_name]));
+    const rows = everyone.filter(r => names[r.user_id]);
+    head.innerHTML = `<h2>Everyone's picks</h2><p class="panel-lede">${rows.length} sealed player${rows.length === 1 ? "" : "s"}. Each dot is one player's margin, Democrats and independents to the left of even, Republicans to the right. Your pick is ringed. Hover or tap a dot to see whose it is.</p>`;
+    grid.innerHTML = STATES.map(st => distChart(st, rows, names)).join("");
+  }
+  $("dist-grid").addEventListener("pointermove", e => {
+    const dot = e.target.closest("circle.d-dot");
+    if (!dot) { hideTip(); return; }
+    const st = BY_ID[dot.dataset.st], v = +dot.dataset.v;
+    const p = players.find(x => x.id === dot.dataset.id);
+    const c = chipColor(st, v);
+    tip.innerHTML = `<div class="tip-title">${esc(p ? p.display_name : "Player")}${dot.dataset.id === uid() ? " (you)" : ""}</div><div class="tip-row">${st.name}: <span class="tip-chip" style="background:${c.bg};color:${c.fg}">${fmt(st, v)}</span></div>`;
+    tip.hidden = false;
+    const rr = tip.getBoundingClientRect();
+    let left = e.clientX + 14, topY = e.clientY + 14;
+    if (left + rr.width > window.innerWidth - 8) left = e.clientX - rr.width - 14;
+    if (topY + rr.height > window.innerHeight - 8) topY = e.clientY - rr.height - 14;
+    tip.style.left = Math.max(8, left) + "px";
+    tip.style.top = Math.max(8, topY) + "px";
+  });
+  $("dist-grid").addEventListener("pointerleave", e => { if (e.pointerType === "mouse") hideTip(); });
+  $("cmp-view").addEventListener("click", async e => {
+    const b = e.target.closest("[data-view]");
+    if (!b || b.dataset.view === compareView) return;
+    compareView = b.dataset.view;
+    save("pl-cmpview", compareView);
+    hideTip();
+    if (compareView === "all") await loadEveryone();
+    renderAll();
+  });
+
   // ---- views ----
   function renderCompareBar() {
     const bar = $("compare-bar");
     bar.hidden = tab !== "compare";
     if (bar.hidden) return;
+    document.querySelectorAll("#cmp-view button").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.view === compareView)));
+    $("cmp-one").hidden = compareView === "all";
     const sel = $("compare-select");
     const list = comparable();
     const waiting = others().length - list.length;
@@ -931,14 +1010,16 @@
     }
     document.querySelector('#tabs [data-tab="results"]').hidden = !isAdmin();
     document.querySelectorAll("#tabs button").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.tab === tab)));
-    const game = member && (tab === "picks" || tab === "compare" || tab === "results");
+    const dist = member && tab === "compare" && compareView === "all";
+    const game = member && !dist && (tab === "picks" || tab === "compare" || tab === "results");
+    $("dist-sec").hidden = !dist;
     // The leaderboard shows the official results map, updating live as races are called
     const boardMap = member && tab === "leaderboard";
     $("maps-sec").hidden = !(game || boardMap);
     $("maps-sec").classList.toggle("solo", boardMap);
     $("line-sec").hidden = !game;
     $("entry-sec").hidden = !member || !(tab === "picks" || tab === "results");
-    $("score").hidden = !member || !(tab === "picks" || tab === "compare");
+    $("score").hidden = !member || dist || !(tab === "picks" || tab === "compare");
     $("leaderboard").hidden = !member || tab !== "leaderboard";
     $("compare-bar").hidden = !member || tab !== "compare";
     if (!member || tab !== "leaderboard") $("headline").hidden = true;
@@ -958,6 +1039,7 @@
     }
     if (tab === "rules") return;
     renderCompareBar();
+    if (tab === "compare" && compareView === "all") { renderDist(); return; }
     const rows = rowsFor();
     rowByKey = Object.fromEntries(rows.map(r => [r.key, r]));
     renderMaps(rows);
@@ -974,7 +1056,7 @@
     save("pl-tab", tab);
     hideTip();
     if (tab === "leaderboard") scheduleRefresh();
-    if (tab === "compare") loadThem();
+    if (tab === "compare") { loadThem(); if (compareView === "all") loadEveryone().then(renderAll); }
     renderAll();
   }));
   $("leaderboard").addEventListener("click", e => {
@@ -1115,6 +1197,7 @@
     if (!pl.error) players = pl.data || [];
     if (!lb.error) board = lb.data || [];
     if (pastDeadline() || isAdmin()) await loadModels();
+    if (tab === "compare" && compareView === "all") await loadEveryone();
     if (!target()) {
       const firstModel = MODELS.find(m => hasModel(m.id));
       compareId = (comparable()[0] || {}).id || (firstModel ? "model:" + firstModel.id : null);
@@ -1137,6 +1220,11 @@
     if (compareId !== id) return;
     if (data) { docs.them = norm(data); themFor = id; }
     renderAll();
+  }
+  async function loadEveryone() {
+    if (!docs.me.sealed) { everyone = []; return; }
+    const { data, error } = await sb.from("picks").select("user_id, races").eq("sealed", true);
+    if (!error && data) everyone = data;
   }
   async function loadModels() {
     const { data, error } = await sb.from("benchmarks").select("id, races");
