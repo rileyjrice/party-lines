@@ -19,8 +19,8 @@
   // Sub-leaderboards. Keys match the check constraint on profiles.grp.
   const GROUPS = [
     { key: "polisci", code: "ACAD", name: "Academics", desc: "grad students and faculty, in any field, at any university", short: "Academics" },
-    { key: "undergrad", code: "UWUG", name: "UW undergrads", desc: "current UW–Madison undergraduate students", short: "UW Undergrads" },
-    { key: "friends", code: "F&F", name: "Friends & family", desc: "Riley's friends and family, and anyone else", short: "Friends & Family" },
+    { key: "undergrad", code: "UWUG", name: "UW Undergrads", desc: "current UW–Madison undergraduate students", short: "UW Undergrads" },
+    { key: "friends", code: "F&F", name: "Friends & Family", desc: "Riley's friends and family, and anyone else", short: "Friends & Family" },
   ];
   const GROUP_BY = Object.fromEntries(GROUPS.map(g => [g.key, g]));
   // Senate seats decided before the game: 65 seats not up in 2026 (R 31, D 34 incl. King and Sanders)
