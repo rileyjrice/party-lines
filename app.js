@@ -142,9 +142,8 @@
     el.hidden = !call;
     if (!call) return;
     const who = { d: "Democrats", r: "Republicans", i: "Independents" }[call.party];
-    const line = call.party === "i"
-      ? `<span class="i">${who}</span> <em>hold the balance</em> of the Senate`
-      : `<span class="${call.party}">${who}</span> <em>${call.tier}</em> the Senate`;
+    const verb = call.party === "i" ? "decide" : call.tier;
+    const line = `<span class="${call.party}">${who}</span> <em>${verb}</em> the Senate`;
     const out = call.sc.open ? ` · ${call.sc.open} race${call.sc.open === 1 ? "" : "s"} still out` : "";
     el.innerHTML = `<h2>${line}</h2><p class="sb-labels"><span>Senate ${seatText({ ...call.sc, open: 0 })}${out}</span></p>`;
   }
