@@ -292,3 +292,10 @@ td.win { font-weight: 700; }
 .rules details.notes summary::after { content: "+"; font-family: var(--font-data); font-size: 16px; color: var(--ink-3); }
 .rules details.notes[open] summary::after { content: "–"; }
 .rules details.notes ul { margin-top: 8px; }
+
+/* Senate call headline above the leaderboard map */
+.headline { display: grid; gap: 6px; justify-items: center; text-align: center; padding: 6px 0 0; }
+.headline h2 { margin: 0; font-family: var(--font-display); font-weight: 800; font-stretch: 105%; font-size: clamp(26px, 4.6vw, 42px); line-height: 1.05; text-transform: uppercase; letter-spacing: 0.01em; text-wrap: balance; }
+.headline h2 em { font-style: italic; }
+.headline .d { color: var(--blue); } .headline .r { color: var(--red); } .headline .i { color: var(--gold); }
+.headline .sb-labels { justify-content: center; margin: 0; font-size: 12px; }

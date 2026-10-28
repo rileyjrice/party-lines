@@ -119,6 +119,36 @@
       `<div class="sb-labels"><span>${seatText(sc)}</span><span class="sb-ctl ${sc.control.cls}">${sc.control.text}</span></div>`;
   }
 
+  // ---- the Senate call (leaderboard headline) ----
+  // Control is decided once the called races alone settle it: D needs 51 of their own
+  // (Osborn and Bodnar count as independents), R needs 50 (VP tiebreak).
+  const SWEEP = ["TX", "MI", "ME", "NC", "GA", "OH", "IA", "AK", "NH", "MN"];
+  function senateCall() {
+    const sc = seats("results");
+    let open = 0, dOpen = 0;
+    STATES.forEach(st => {
+      const v = signed(docs.results.picks[st.id]);
+      if (v === null || Math.abs(v) < 0.05) { open++; if (!st.ind) dOpen++; }
+    });
+    const demWon = id => { const v = signed(docs.results.picks[id]); return v !== null && v <= -0.05; };
+    if (sc.d >= 51) return { sc, party: "d", tier: SWEEP.every(demWon) ? "sweep" : sc.d >= 52 ? "flip" : "narrowly flip" };
+    if (sc.r >= 50) return { sc, party: "r", tier: sc.r >= 52 ? "hold" : "narrowly hold" };
+    if (sc.d + dOpen < 51 && sc.r + open < 50) return { sc, party: "i" };
+    return null;
+  }
+  function renderHeadline() {
+    const el = $("headline");
+    const call = me && tab === "leaderboard" ? senateCall() : null;
+    el.hidden = !call;
+    if (!call) return;
+    const who = { d: "Democrats", r: "Republicans", i: "Independents" }[call.party];
+    const line = call.party === "i"
+      ? `<span class="i">${who}</span> <em>hold the balance</em> of the Senate`
+      : `<span class="${call.party}">${who}</span> <em>${call.tier}</em> the Senate`;
+    const out = call.sc.open ? ` · ${call.sc.open} race${call.sc.open === 1 ? "" : "s"} still out` : "";
+    el.innerHTML = `<h2>${line}</h2><p class="sb-labels"><span>Senate ${seatText({ ...call.sc, open: 0 })}${out}</span></p>`;
+  }
+
   // ---- which rows each tab shows ----
   const others = () => players.filter(p => p.id !== uid());
   const target = () => others().find(p => p.id === compareId) || null;
@@ -751,6 +781,7 @@
     $("score").hidden = !member || !(tab === "picks" || tab === "compare");
     $("leaderboard").hidden = !member || tab !== "leaderboard";
     $("compare-bar").hidden = !member || tab !== "compare";
+    if (!member || tab !== "leaderboard") $("headline").hidden = true;
   }
   function renderAll() {
     renderChrome();
@@ -759,6 +790,7 @@
       const rows = rowsFor();
       rowByKey = Object.fromEntries(rows.map(r => [r.key, r]));
       renderMaps(rows);
+      renderHeadline();
       renderBoard();
       return;
     }
