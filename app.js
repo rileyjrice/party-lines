@@ -120,11 +120,11 @@
     return { d, i, r, open, control };
   }
   function seatText(sc) {
-    return `<span class="d">D ${sc.d}</span>${sc.i ? ` · <span class="i">I ${sc.i}</span>` : ""} · <span class="r">R ${sc.r}</span>${sc.open ? ` · ${sc.open} open` : ""}`;
+    return `<span class="d">D ${sc.d}</span>${sc.i ? ` · <span class="i">I ${sc.i}</span>` : ""} · <span class="r">R ${sc.r}</span>${sc.open ? ` · ${sc.open} in play` : ""}`;
   }
   function seatBar(sc) {
     const w = n => n + "%";
-    return `<div class="sb-track" role="img" aria-label="Senate: ${sc.d} Democrats, ${sc.i} independents, ${sc.r} Republicans, ${sc.open} undecided">` +
+    return `<div class="sb-track" role="img" aria-label="Senate: ${sc.d} Democrats, ${sc.i} independents, ${sc.r} Republicans, ${sc.open} in play">` +
       `<span class="sb-d" style="width:${w(sc.d)}"></span><span class="sb-i" style="width:${w(sc.i)}"></span><span class="sb-o" style="width:${w(sc.open)}"></span><span class="sb-r" style="width:${w(sc.r)}"></span><i class="sb-mid"></i></div>` +
       `<div class="sb-labels"><span>${seatText(sc)}</span><span class="sb-ctl ${sc.control.cls}">${sc.control.text}</span></div>`;
   }
