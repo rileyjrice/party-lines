@@ -119,6 +119,44 @@
       `<div class="sb-labels"><span>${seatText(sc)}</span><span class="sb-ctl ${sc.control.cls}">${sc.control.text}</span></div>`;
   }
 
+  // ---- seal reminder banner (shown to players who haven't sealed) ----
+  function timeLeft(ms) {
+    const m = Math.max(1, Math.ceil(ms / 60000)), d = Math.floor(m / 1440), h = Math.floor((m % 1440) / 60), mm = m % 60;
+    const part = (n, w) => `${n} ${w}${n === 1 ? "" : "s"}`;
+    if (d) return part(d, "day") + (h ? ", " + part(h, "hour") : "");
+    if (h) return part(h, "hour") + (mm ? ", " + part(mm, "minute") : "");
+    return part(mm, "minute");
+  }
+  function renderBanner() {
+    const el = $("seal-banner");
+    if (!me || docs.me.sealed) { el.hidden = true; return; }
+    const filled = STATES.filter(st => { const p = docs.me.picks[st.id]; return p && (p.side === "L" || p.side === "R") && typeof p.pts === "number" && p.pts > 0; }).length;
+    const left = DEADLINE - Date.now();
+    let html;
+    if (left <= 0) {
+      html = `<p><strong>Picks closed at 6:00 p.m. ET on Nov 3.</strong> Yours weren't sealed, so they don't count this time.</p>`;
+      el.className = "banner closed";
+    } else {
+      const when = `Picks close in <b>${timeLeft(left)}</b> (Tue, Nov 3, 6:00 p.m. ET).`;
+      html = filled === 16
+        ? `<p><strong>Your picks aren't sealed yet.</strong> All 16 are filled in. Seal them before the deadline or they won't count. ${when}</p>`
+        : `<p><strong>You haven't sealed your picks yet.</strong> You've filled in ${filled} of 16 races. ${when}</p>`;
+      if (tab !== "picks") html += `<button type="button" class="btn" id="banner-go">Go to your picks</button>`;
+      el.className = "banner" + (left < 6 * 3600 * 1000 ? " urgent" : "");
+    }
+    el.innerHTML = html;
+    el.hidden = false;
+    const go = $("banner-go");
+    if (go) go.onclick = () => document.querySelector('#tabs [data-tab="picks"]').click();
+  }
+  // Tick the countdown, and redraw everything once when the deadline passes so the cards lock
+  let wasPast = pastDeadline();
+  setInterval(() => {
+    if (!me) return;
+    const past = pastDeadline();
+    if (past !== wasPast) { wasPast = past; renderAll(); } else renderBanner();
+  }, 30000);
+
   // ---- the Senate call (leaderboard headline) ----
   // Control is decided once the called races alone settle it: D needs 51 of their own
   // (Osborn and Bodnar count as independents), R needs 50 (VP tiebreak).
@@ -784,6 +822,7 @@
   }
   function renderAll() {
     renderChrome();
+    renderBanner();
     if (!me) return;
     if (tab === "leaderboard") {
       const rows = rowsFor();

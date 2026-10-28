@@ -299,3 +299,12 @@ td.win { font-weight: 700; }
 .headline h2 em { font-style: italic; }
 .headline .d { color: var(--blue); } .headline .r { color: var(--red); } .headline .i { color: var(--gold); }
 .headline .sb-labels { justify-content: center; margin: 0; font-size: 12px; }
+
+/* Seal reminder banner */
+.banner { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px; padding: 12px 16px; border: 1.5px solid var(--gold); border-radius: 12px; background: var(--surface); font-size: 14px; color: var(--ink-2); }
+.banner p { margin: 0; flex: 1 1 320px; }
+.banner strong { color: var(--ink); }
+.banner b { color: var(--ink); font-weight: 600; }
+.banner.urgent { border-color: var(--red); background: var(--red-wash); }
+.banner.urgent b { color: var(--red); }
+.banner.closed { border-color: var(--rule); border-style: dashed; }
