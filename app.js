@@ -748,8 +748,9 @@
     return `<div class="lb-bar"><div class="seg" role="group" aria-label="Which leaderboard">${btns}</div>${mine}</div>` +
       `<p class="msg error" id="grp-msg" role="alert"></p>`;
   }
-  // Small group tag shown after names on the Everyone view
+  // Small tag after names: ADMN for admins on every leaderboard, otherwise the group on the Everyone view
   const grpTag = p => {
+    if (players.some(x => x.id === p.id && x.is_admin)) return ` <span class="gtag g-admin" title="Admin">ADMN</span>`;
     const g = GROUP_BY[p.grp];
     return lbFilter === "all" && g ? ` <span class="gtag g-${g.key}" title="${esc(g.name)}">${esc(g.code)}</span>` : "";
   };
