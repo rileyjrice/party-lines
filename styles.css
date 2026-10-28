@@ -363,3 +363,5 @@ tr.model .model-name { font-style: italic; }
 .d-over { font-size: 14px; fill: var(--ink-3); text-anchor: middle; }
 /* The Rules intro runs wider than other panel intros */
 #rules .panel-lede { max-width: 90ch; }
+.ask-pw { margin: -4px 0 0; }
+.ask-pw a { color: var(--ink-2); text-decoration: underline; text-underline-offset: 2px; }

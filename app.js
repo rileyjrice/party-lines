@@ -1364,6 +1364,13 @@
     $("code-form").hidden = true;
     $("signin-msg").textContent = "";
   });
+  // "Ask Riley" opens the player's email app with a password request already written
+  $("ask-pw").addEventListener("click", () => {
+    const name = $("join-name").value.trim();
+    const email = session && session.user ? session.user.email : "";
+    const body = `Hi Riley,\n\nI'd like to join Party Lines. Could you send me the password?\n\nName: ${name || "(your name)"}\nEmail: ${email}\n`;
+    $("ask-pw").href = "mailto:rileyjamesrice01@gmail.com?subject=" + encodeURIComponent("Party Lines password request") + "&body=" + encodeURIComponent(body);
+  });
   $("join-form").addEventListener("submit", async e => {
     e.preventDefault();
     const msg = $("join-msg"), btn = e.target.querySelector("button[type=submit]");
