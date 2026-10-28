@@ -138,7 +138,7 @@
       el.className = "banner closed";
     } else {
       const urgent = left < 6 * 3600 * 1000;
-      const when = `<b>${timeLeft(left)}</b>`;
+      const when = `<b>${timeLeft(left)}</b> (Tue, Nov 3, 6:00 p.m. ET)`;
       if (urgent) {
         html = filled === 16
           ? `<p><strong>Your picks aren't sealed yet.</strong> All 16 are filled in. Seal them before picks close in ${when} or they won't count.</p>`
