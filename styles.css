@@ -41,6 +41,8 @@
 }
 
 * { box-sizing: border-box; }
+/* Always reserve the scrollbar's space so switching between short and tall views doesn't shift the page */
+html { scrollbar-gutter: stable; }
 [hidden] { display: none !important; }
 body { background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 15px; line-height: 1.5; }
 .wrap { max-width: 1120px; margin: 0 auto; padding-block: 28px 64px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); display: grid; gap: 28px; }
