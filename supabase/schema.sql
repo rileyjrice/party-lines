@@ -190,6 +190,19 @@ drop trigger if exists results_guard on public.results;
 create trigger results_guard before insert or update on public.results
   for each row execute function private.results_guard();
 
+-- Family was merged into Friends & Family; an old cached page may still send 'family'
+create or replace function private.normalize_grp() returns trigger
+language plpgsql set search_path = '' as $$
+begin
+  if new.grp = 'family' then new.grp := 'friends'; end if;
+  return new;
+end;
+$$;
+
+drop trigger if exists profiles_normalize_grp on public.profiles;
+create trigger profiles_normalize_grp before insert or update of grp on public.profiles
+  for each row execute function private.normalize_grp();
+
 -- ---------------------------------------------------------------------------
 -- Row-level security
 -- ---------------------------------------------------------------------------
