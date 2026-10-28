@@ -188,7 +188,9 @@
 
   // ---- which rows each tab shows ----
   const others = () => players.filter(p => p.id !== uid());
-  const target = () => others().find(p => p.id === compareId) || null;
+  // Only sealed players can ever be compared, so they're the only ones offered
+  const comparable = () => others().filter(p => p.sealed);
+  const target = () => comparable().find(p => p.id === compareId) || null;
   function compareSeal(t) {
     const n = esc(t.display_name);
     const mine = docs.me.sealed, theirs = !!t.sealed;
@@ -773,14 +775,19 @@
     bar.hidden = tab !== "compare";
     if (bar.hidden) return;
     const sel = $("compare-select");
-    const list = others();
+    const list = comparable();
+    const waiting = others().length - list.length;
+    $("compare-note").textContent = waiting
+      ? `${waiting} other player${waiting === 1 ? " hasn't" : "s haven't"} sealed yet and will appear here once they do.`
+      : "";
     if (!list.length) {
-      sel.innerHTML = `<option value="">No one else has joined yet</option>`;
+      sel.innerHTML = `<option value="">${others().length ? "No one else has sealed yet" : "No one else has joined yet"}</option>`;
+      sel.dataset.html = "";
       sel.disabled = true;
       return;
     }
     sel.disabled = false;
-    const opt = p => `<option value="${esc(p.id)}">${esc(p.display_name)}${p.sealed ? " · sealed" : ""}</option>`;
+    const opt = p => `<option value="${esc(p.id)}">${esc(p.display_name)}</option>`;
     const html = GROUPS.map(g => {
       const inG = list.filter(p => p.grp === g.key);
       return inG.length ? `<optgroup label="${g.name}">${inG.map(opt).join("")}</optgroup>` : "";
@@ -978,9 +985,9 @@
     const [pl, lb] = await Promise.all([sb.rpc("list_players"), sb.rpc("leaderboard")]);
     if (!pl.error) players = pl.data || [];
     if (!lb.error) board = lb.data || [];
-    const list = others();
+    const list = comparable();
     if (!list.find(p => p.id === compareId)) {
-      compareId = (list.find(p => p.sealed) || list[0] || {}).id || null;
+      compareId = (list[0] || {}).id || null;
       save("pl-compare", compareId);
     }
     await loadThem();

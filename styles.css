@@ -311,3 +311,5 @@ td.win { font-weight: 700; }
 
 /* Copyright and credit line at the very bottom */
 .credit { margin: 0; text-align: center; font-size: 11px; color: var(--ink-3); letter-spacing: 0.02em; }
+.compare-note { font-size: 13px; color: var(--ink-3); }
+.compare-note:empty { display: none; }
