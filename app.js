@@ -23,6 +23,12 @@
     { key: "friends", code: "F&F", name: "Friends & Family", desc: "Riley's friends and family, and anyone else", short: "Friends & Family" },
   ];
   const GROUP_BY = Object.fromEntries(GROUPS.map(g => [g.key, g]));
+  // Model benchmarks: entered by an admin, shown for comparison after picks close, never ranked
+  const MODELS = [
+    { id: "silver", name: "Silver Bulletin" },
+    { id: "fiftyplusone", name: "FiftyPlusOne" },
+  ];
+  const modelKey = id => "m_" + id;
   // Senate seats decided before the game: 65 seats not up in 2026 (R 31, D 34 incl. King and Sanders)
   // plus the 19 races outside the game (safe D 9, safe R 10) = D 43, R 41. The 16 game races decide the rest.
   const BASE_D = 34 + Object.values(SAFE).filter(x => x === "D").length;
@@ -32,6 +38,8 @@
   let session = null, me = null, booted = false, handledUid = undefined;
   let players = [], board = [];
   const docs = { me: emptyDoc(), them: emptyDoc(), results: { picks: {}, final: false } };
+  MODELS.forEach(m => { docs[modelKey(m.id)] = { picks: {} }; });
+  let entryTarget = "results"; // what an admin is entering on the Results entry tab: "results" or a model id
   let themFor = null;
   const dirty = {}, inflight = {}, again = {}, timers = {};
   let channel = null, refreshT = null, pollT = null;
@@ -189,7 +197,7 @@
   setInterval(() => {
     if (!me) return;
     const past = pastDeadline();
-    if (past !== wasPast) { wasPast = past; renderAll(); } else renderBanner();
+    if (past !== wasPast) { wasPast = past; loadModels().then(renderAll); } else renderBanner();
   }, 30000);
 
   // ---- the Senate call (leaderboard headline) ----
@@ -225,7 +233,13 @@
   const others = () => players.filter(p => p.id !== uid());
   // Only sealed players can ever be compared, so they're the only ones offered
   const comparable = () => others().filter(p => p.sealed);
-  const target = () => comparable().find(p => p.id === compareId) || null;
+  // Models are visible to players once picks close (the database hides them before that)
+  const hasModel = id => Object.keys(docs[modelKey(id)].picks).length > 0;
+  const modelTarget = () => {
+    const m = MODELS.find(x => "model:" + x.id === compareId);
+    return m && hasModel(m.id) ? { id: compareId, display_name: m.name, model: m.id } : null;
+  };
+  const target = () => modelTarget() || comparable().find(p => p.id === compareId) || null;
   function compareSeal(t) {
     const n = esc(t.display_name);
     const mine = docs.me.sealed, theirs = !!t.sealed;
@@ -244,10 +258,15 @@
   function rowsFor() {
     const you = { key: "me", name: "You", visible: true };
     const actual = { key: "results", name: "Actual", mapName: "Official results", visible: true };
+    if (tab === "results" && entryTarget !== "results") {
+      const m = MODELS.find(x => x.id === entryTarget);
+      return [{ key: modelKey(m.id), name: m.name, visible: true }, actual];
+    }
     if (tab === "results" || tab === "leaderboard") return [actual];
     if (tab === "compare") {
       const t = target();
       if (!t) return [you, actual];
+      if (t.model) return [you, { key: modelKey(t.model), name: t.display_name, visible: true }, actual];
       const seal = compareSeal(t);
       const them = { key: "them", name: t.display_name, visible: !seal && themFor === t.id };
       if (seal) { them.sealedHtml = seal.line; them.mapSeal = seal.map; }
@@ -513,10 +532,10 @@
   window.addEventListener("scroll", () => { if (!tip.hidden) hideTip(); }, { passive: true });
 
   // ---- entry panel (your picks, or results for admins) ----
-  const editKey = () => (tab === "results" ? "results" : "me");
+  const editKey = () => (tab === "results" ? (entryTarget === "results" ? "results" : modelKey(entryTarget)) : "me");
   function editable() {
     if (!me) return false;
-    if (editKey() === "results") return isAdmin();
+    if (editKey() !== "me") return isAdmin();
     return !docs.me.sealed && !pastDeadline();
   }
   let cardsBuilt = false;
@@ -574,7 +593,12 @@
     const n = entries(key).length;
     const touched = Object.keys(docs[key].picks).length; // any race with a candidate or margin, even if incomplete
     let title, right = "", note = "";
-    if (key === "results") {
+    if (key.startsWith("m_")) {
+      const m = MODELS.find(x => modelKey(x.id) === key);
+      title = `${m.name} forecast`;
+      if (touched) right = '<button type="button" class="btn ghost" id="clear">Clear forecast</button>';
+      note = `Enter ${m.name}'s final forecast: its projected winner and margin in each race. Players see it after picks close (Tue, Nov 3, 6:00 p.m. ET). It's shown for comparison and never ranked.`;
+    } else if (key === "results") {
       title = "Actual results";
       const fin = docs.results.final;
       right = (touched && !fin ? '<button type="button" class="btn ghost" id="clear">Clear results</button>' : "") +
@@ -599,9 +623,22 @@
           : "Select a winner, then enter how many points you think they'll win by. For example, if you think they'll win 52% to 48%, enter 4. Click a winner again to clear a race.";
       }
     }
-    const canSave = key === "results" ? isAdmin() : !docs.me.sealed && !pastDeadline();
-    head.innerHTML = `<h2>${title}</h2><span class="count">${n} / 16 placed</span>${canSave && touched ? `<span class="saved" id="saved-ind">${savedText(key)}</span>` : ""}<span class="spacer"></span>${right}`;
+    const canSave = key !== "me" ? isAdmin() : !docs.me.sealed && !pastDeadline();
+    const switcher = tab === "results" && isAdmin()
+      ? `<div class="entry-switch-row"><div class="seg entry-switch" role="group" aria-label="What you're entering">` +
+        [{ id: "results", name: "Results" }].concat(MODELS).map(x =>
+          `<button type="button" data-target="${x.id}" aria-pressed="${entryTarget === x.id}">${esc(x.name)}</button>`).join("") + `</div></div>`
+      : "";
+    head.innerHTML = `${switcher}<h2>${title}</h2><span class="count">${n} / 16 placed</span>${canSave && touched ? `<span class="saved" id="saved-ind">${savedText(key)}</span>` : ""}<span class="spacer"></span>${right}`;
     $("entry-note").textContent = note;
+    head.querySelectorAll(".entry-switch button").forEach(b => b.onclick = async () => {
+      if (b.dataset.target === entryTarget) return;
+      await settle(editKey());
+      entryTarget = b.dataset.target;
+      confirmOpen = false;
+      entryError = "";
+      renderAll();
+    });
     const sealBtn = $("seal"); if (sealBtn) sealBtn.onclick = () => { confirmOpen = "seal"; renderConfirm(); };
     const clear = $("clear"); if (clear) clear.onclick = () => { confirmOpen = "clear"; renderConfirm(); };
     const fin = $("final"); if (fin) fin.onclick = () => { confirmOpen = "final"; renderConfirm(); };
@@ -613,7 +650,7 @@
     if (confirmOpen === "clear") {
       const n = Object.keys(docs[key].picks).length;
       if (!n || !editable()) { confirmOpen = false; renderConfirm(); return; }
-      const what = key === "results" ? "the entered results" : "all of your picks";
+      const what = key === "results" ? "the entered results" : key === "me" ? "all of your picks" : "this forecast";
       slot.innerHTML = `<div class="confirm"><p>Clear ${what}? This can't be undone.</p><button type="button" class="btn" id="clear-yes">Clear</button><button type="button" class="btn ghost" id="clear-no">Cancel</button></div>`;
       $("clear-yes").onclick = () => { docs[key].picks = {}; confirmOpen = false; queueWrite(key); renderAll(); };
       $("clear-no").onclick = () => { confirmOpen = false; renderConfirm(); };
@@ -728,6 +765,21 @@
   }
 
   // ---- leaderboard ----
+  const winnerOf = v => (Math.abs(v) < 0.05 ? 0 : Math.sign(v));
+  // Same scoring as the server's leaderboard(): winners called, and average miss without Montana
+  function modelScores() {
+    const res = entries("results");
+    return MODELS.filter(m => hasModel(m.id)).map(m => {
+      let called = 0, n = 0, err = 0;
+      res.forEach(({ st, v }) => {
+        const g = signed(docs[modelKey(m.id)].picks[st.id]);
+        if (g === null) return;
+        if (winnerOf(g) === winnerOf(v)) called++;
+        if (!st.winnerOnly) { n++; err += Math.abs(g - v); }
+      });
+      return { id: "model:" + m.id, model: m.id, display_name: m.name, called, avg_miss: n ? err / n : null };
+    });
+  }
   const MEDAL = ["", "1st", "2nd", "3rd"];
   function placeify(list, same) {
     list.forEach((r, i) => { r.place = i > 0 && same(list[i - 1], r) ? list[i - 1].place : i + 1; });
@@ -794,20 +846,38 @@
       (a, b) => a.called === b.called && missKey(a) === missKey(b));
     const byMiss = placeify(rows.filter(r => r.avg_miss !== null).map(r => ({ ...r })).sort((a, b) => (missKey(a) - missKey(b)) || byName(a, b)),
       (a, b) => missKey(a) === missKey(b));
-    const tr = (r, cells) => `<tr class="${r.id === uid() ? "me" : ""}"><td class="place">${medal(r.place)}</td><td>${esc(r.display_name)}${you(r.id)}${grpTag(r)}</td>${cells}</tr>`;
+    // Models slot in where their score would rank, without taking a place from any player
+    const models = modelScores();
+    const withModels = (list, ahead) => {
+      const out = list.slice();
+      models.forEach(m => {
+        let i = out.findIndex(r => !r.model && ahead(m, r));
+        if (i === -1) i = out.length;
+        out.splice(i, 0, m);
+      });
+      return out;
+    };
+    const winsList = withModels(byWins, (m, r) => m.called > r.called || (m.called === r.called && missKey(m) < missKey(r)));
+    const missList = withModels(byMiss, (m, r) => missKey(m) < missKey(r)).filter(r => !(r.model && r.avg_miss === null));
+    const tr = (r, cells) => r.model
+      ? `<tr class="model"><td class="place"></td><td><span class="model-name">${esc(r.display_name)}</span> <span class="mtag mt-${r.model}">MODEL</span></td>${cells}</tr>`
+      : `<tr class="${r.id === uid() ? "me" : ""}"><td class="place">${medal(r.place)}</td><td>${esc(r.display_name)}${you(r.id)}${grpTag(r)}</td>${cells}</tr>`;
     html += docs.results.final
       ? `<p class="lb-status final"><span class="seal-icon">FINAL</span>All results are in. These are the final standings. · ${rows.length} sealed player${rows.length === 1 ? "" : "s"}</p>`
       : `<p class="lb-status"><span class="live-dot" aria-hidden="true"></span><span><b>Results are still coming in</b> · ${racesIn} of 16 races called. Standings may change as more races are called. · ${rows.length} sealed player${rows.length === 1 ? "" : "s"}</span></p>`;
     html += `<div class="boards">` +
       `<div class="board"><h3>Most winners called</h3><p class="hint">If players call the same number of winners, whoever's margins were closer to the real results ranks higher (see Closest margins).</p><div class="table-wrap"><table><thead><tr><th></th><th>Player</th><th>Winners called</th></tr></thead><tbody>` +
-        byWins.map(r => tr(r, `<td class="m">${r.called} / ${racesIn}</td>`)).join("") +
+        winsList.map(r => tr(r, `<td class="m">${r.called} / ${racesIn}</td>`)).join("") +
       `</tbody></table></div></div>` +
       `<div class="board"><h3>Closest margins</h3><p class="hint">How far off your margins were, on average, in points. Lower is better. Montana doesn't count here.</p>` +
         (byMiss.length
           ? `<div class="table-wrap"><table><thead><tr><th></th><th>Player</th><th>Average miss</th></tr></thead><tbody>` +
-            byMiss.map(r => tr(r, `<td class="m">${showMiss(r)}</td>`)).join("") + `</tbody></table></div>`
+            missList.map(r => tr(r, `<td class="m">${showMiss(r)}</td>`)).join("") + `</tbody></table></div>`
           : `<p class="score-wait">Appears once a race other than Montana has a result.</p>`) +
-      `</div></div>`;
+      `</div></div>` +
+      (models.length
+        ? `<p class="hint model-note">Forecasts from Silver Bulletin and FiftyPlusOne are shown for comparison and aren't ranked. Party Lines isn't affiliated with either; names belong to their owners.</p>`
+        : "");
     el.innerHTML = html;
   }
 
@@ -822,7 +892,8 @@
     $("compare-note").textContent = waiting
       ? `${waiting} other player${waiting === 1 ? " hasn't" : "s haven't"} sealed yet and will appear here once they do.`
       : "";
-    if (!list.length) {
+    const models = MODELS.filter(m => hasModel(m.id));
+    if (!list.length && !models.length) {
       sel.innerHTML = `<option value="">${others().length ? "No one else has sealed yet" : "No one else has joined yet"}</option>`;
       sel.dataset.html = "";
       sel.disabled = true;
@@ -833,7 +904,9 @@
     const html = GROUPS.map(g => {
       const inG = list.filter(p => p.grp === g.key);
       return inG.length ? `<optgroup label="${esc(g.name)}">${inG.map(opt).join("")}</optgroup>` : "";
-    }).join("");
+    }).join("") + (models.length
+      ? `<optgroup label="Models">${models.map(m => `<option value="model:${m.id}">${esc(m.name)}</option>`).join("")}</optgroup>`
+      : "");
     if (sel.dataset.html !== html) { sel.innerHTML = html; sel.dataset.html = html; }
     sel.value = compareId || "";
   }
@@ -960,6 +1033,9 @@
     try {
       if (key === "me") {
         ({ error } = await sb.from("picks").upsert({ user_id: uid(), races }, { onConflict: "user_id" }));
+      } else if (key.startsWith("m_")) {
+        const r = await sb.from("benchmarks").update({ races }).eq("id", key.slice(2)).select("id");
+        error = r.error || (r.data && r.data.length ? null : { message: "Only admins can enter model forecasts." });
       } else {
         const r = await sb.from("results").update({ races }).eq("id", 1).select("id");
         error = r.error || (r.data && r.data.length ? null : { message: "Only admins can enter results." });
@@ -1029,15 +1105,19 @@
     } else if (key === "results") {
       const { data } = await sb.from("results").select("races, final").eq("id", 1).maybeSingle();
       docs.results = { picks: norm(data).picks, final: !!(data && data.final) };
+    } else if (key.startsWith("m_")) {
+      const { data } = await sb.from("benchmarks").select("races").eq("id", key.slice(2)).maybeSingle();
+      docs[key].picks = norm(data).picks;
     }
   }
   async function refreshLists() {
     const [pl, lb] = await Promise.all([sb.rpc("list_players"), sb.rpc("leaderboard")]);
     if (!pl.error) players = pl.data || [];
     if (!lb.error) board = lb.data || [];
-    const list = comparable();
-    if (!list.find(p => p.id === compareId)) {
-      compareId = (list[0] || {}).id || null;
+    if (pastDeadline() || isAdmin()) await loadModels();
+    if (!target()) {
+      const firstModel = MODELS.find(m => hasModel(m.id));
+      compareId = (comparable()[0] || {}).id || (firstModel ? "model:" + firstModel.id : null);
       save("pl-compare", compareId);
     }
     await loadThem();
@@ -1049,6 +1129,7 @@
   // Fetch the compared player's picks once you've both sealed (the database refuses before that)
   async function loadThem() {
     const t = target();
+    if (t && t.model) { themFor = null; return; }
     if (!t || !t.sealed || !docs.me.sealed) { themFor = null; docs.them = emptyDoc(); return; }
     if (themFor === t.id) return;
     const id = t.id;
@@ -1056,6 +1137,14 @@
     if (compareId !== id) return;
     if (data) { docs.them = norm(data); themFor = id; }
     renderAll();
+  }
+  async function loadModels() {
+    const { data, error } = await sb.from("benchmarks").select("id, races");
+    if (error || !data) return;
+    data.forEach(row => {
+      const key = modelKey(row.id);
+      if (docs[key] && !dirty[key] && !inflight[key]) docs[key].picks = norm(row).picks;
+    });
   }
   async function loadAll() {
     const [pk, rs] = await Promise.all([
@@ -1089,6 +1178,11 @@
         scheduleRefresh();
         renderAll();
       })
+      .on("postgres_changes", { event: "*", schema: "public", table: "benchmarks" }, payload => {
+        const row = payload.new, key = row && modelKey(row.id);
+        if (key && docs[key] && !dirty[key] && !inflight[key]) docs[key].picks = norm(row).picks;
+        renderAll();
+      })
       .on("postgres_changes", { event: "*", schema: "public", table: "profiles" }, () => scheduleRefresh())
       .subscribe(status => {
         if (status === "SUBSCRIBED") setStatus("Live", true);
@@ -1116,6 +1210,7 @@
       unsubscribe();
       players = []; board = [];
       docs.me = emptyDoc(); docs.them = emptyDoc(); docs.results = { picks: {}, final: false };
+      MODELS.forEach(m => { docs[modelKey(m.id)] = { picks: {} }; });
       setStatus("Not signed in", false);
       renderAll();
       return;

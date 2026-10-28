@@ -330,3 +330,12 @@ td.win { font-weight: 700; }
 .gtag { display: inline-block; margin-left: 6px; padding: 1px 6px; border-radius: 4px; font-family: var(--font-data); font-size: 10px; font-weight: 500; letter-spacing: 0.04em; vertical-align: 1px; color: var(--gc); background: color-mix(in srgb, var(--gc) 14%, transparent); }
 .gtag.g-polisci { --gc: var(--g-posc); } .gtag.g-undergrad { --gc: var(--g-uwug); } .gtag.g-friends { --gc: var(--g-frnd); }
 .gtag.g-admin { --gc: var(--ink-3); }
+
+/* Model benchmarks: grey italic rows with solid brand-colored tags, never ranked */
+tr.model td { color: var(--ink-3); }
+tr.model .model-name { font-style: italic; }
+.mtag { display: inline-block; margin-left: 6px; padding: 1px 6px; border-radius: 4px; font-family: var(--font-data); font-size: 10px; font-weight: 500; font-style: normal; letter-spacing: 0.04em; vertical-align: 1px; }
+.mtag.mt-silver { background: #39E75F; color: #04220D; }
+.mtag.mt-fiftyplusone { background: #6D28D9; color: #FFFFFF; }
+.model-note { margin: 0; }
+.entry-switch-row { flex: 0 0 100%; }
