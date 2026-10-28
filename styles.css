@@ -72,7 +72,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .board-head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; padding: 0 22px 10px; flex-wrap: wrap; }
 .board-head h2 { margin: 0; font-family: var(--font-display); font-stretch: 100%; font-weight: 800; font-size: 20px; text-transform: uppercase; letter-spacing: 0.02em; }
 .sides { display: flex; gap: 14px; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; }
-.sides .d { color: var(--blue); } .sides .r { color: var(--red); }
+.sides .d { color: var(--blue); } .sides .r { color: var(--red); } .sides .i { color: var(--gold); } .sides .sep { color: var(--ink); }
 .plot-outer { padding: 0 30px; }
 .plot { position: relative; background: linear-gradient(90deg, var(--blue-wash) 0, var(--blue-wash) var(--zero-pct, 50%), var(--red-wash) var(--zero-pct, 50%), var(--red-wash) 100%); border-radius: 6px; }
 .axis { position: relative; height: 34px; border-bottom: 1px solid var(--rule); }
