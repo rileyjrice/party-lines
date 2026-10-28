@@ -535,11 +535,12 @@
     const head = $("entry-head");
     const key = editKey();
     const n = entries(key).length;
+    const touched = Object.keys(docs[key].picks).length; // any race with a candidate or margin, even if incomplete
     let title, right = "", note = "";
     if (key === "results") {
       title = "Actual results";
       const fin = docs.results.final;
-      right = (n && !fin ? '<button type="button" class="btn ghost" id="clear">Clear results</button>' : "") +
+      right = (touched && !fin ? '<button type="button" class="btn ghost" id="clear">Clear results</button>' : "") +
         (fin
           ? '<span class="locked-note"><span class="seal-icon">FINAL</span>Marked final.</span><button type="button" class="btn ghost" id="unfinal">Reopen</button>'
           : (n ? '<button type="button" class="btn" id="final">Mark results final</button>' : ""));
@@ -555,7 +556,7 @@
         right = `<span class="locked-note">Picks closed at 6:00 p.m. ET on Nov 3. These weren't sealed, so they don't count.</span>`;
       } else {
         const ok = complete(d.picks);
-        right = `${n ? '<button type="button" class="btn ghost" id="clear">Clear picks</button>' : ""}<button type="button" class="btn" id="seal" ${ok ? "" : "disabled"}>Seal picks</button>`;
+        right = `${touched ? '<button type="button" class="btn ghost" id="clear">Clear picks</button>' : ""}<button type="button" class="btn" id="seal" ${ok ? "" : "disabled"}>Seal picks</button>`;
         note = n === 16 && !ok
           ? "Every race needs a winner and a margin above 0 before you can seal."
           : "Pick a winner, then type the margin. Select the winner again to clear a race. Picks close Tue, Nov 3 at 6:00 p.m. ET.";
