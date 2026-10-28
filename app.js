@@ -20,7 +20,7 @@
   const GROUPS = [
     { key: "polisci", code: "POSC", name: "Political science academics", desc: "PhD students and faculty, at any university", short: "Political Science" },
     { key: "undergrad", code: "UWUG", name: "UW undergrads", desc: "current UW–Madison undergraduate students", short: "UW Undergrads" },
-    { key: "friends", code: "F&F", name: "Friends & family", short: "Friends & Family" },
+    { key: "friends", code: "F&F", name: "Friends & family", desc: "Riley's friends and family, and anyone else", short: "Friends & Family" },
   ];
   const GROUP_BY = Object.fromEntries(GROUPS.map(g => [g.key, g]));
   // Senate seats decided before the game: 65 seats not up in 2026 (R 31, D 34 incl. King and Sanders)
