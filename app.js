@@ -18,10 +18,10 @@
   const BY_ID = Object.fromEntries(STATES.map(s => [s.id, s]));
   // Sub-leaderboards. Keys match the check constraint on profiles.grp.
   const GROUPS = [
-    { key: "polisci", name: "Political science academics", desc: "PhD students and faculty, at any university", short: "Political Science" },
-    { key: "undergrad", name: "UW undergrads", desc: "current UW–Madison undergraduate students", short: "UW Undergrads" },
-    { key: "friends", name: "Friends", short: "Friends" },
-    { key: "family", name: "Family", short: "Family" },
+    { key: "polisci", code: "POSC", name: "Political science academics", desc: "PhD students and faculty, at any university", short: "Political Science" },
+    { key: "undergrad", code: "UWUG", name: "UW undergrads", desc: "current UW–Madison undergraduate students", short: "UW Undergrads" },
+    { key: "friends", code: "FRND", name: "Friends", short: "Friends" },
+    { key: "family", code: "FMLY", name: "Family", short: "Family" },
   ];
   const GROUP_BY = Object.fromEntries(GROUPS.map(g => [g.key, g]));
   // Senate seats decided before the game: 65 seats not up in 2026 (R 31, D 34 incl. King and Sanders)
@@ -749,6 +749,11 @@
     return `<div class="lb-bar"><div class="seg" role="group" aria-label="Which leaderboard">${btns}</div>${mine}</div>` +
       `<p class="msg error" id="grp-msg" role="alert"></p>`;
   }
+  // Small group tag shown after names on the Everyone view
+  const grpTag = p => {
+    const g = GROUP_BY[p.grp];
+    return lbFilter === "all" && g ? ` <span class="gtag g-${g.code.toLowerCase()}" title="${g.name}">${g.code}</span>` : "";
+  };
   function renderBoard() {
     const el = $("leaderboard");
     // Admins (the host) know everyone, so they appear on every group's leaderboard
@@ -768,10 +773,10 @@
     if (!racesIn) {
       html += `<p class="panel-lede">${sealed.length} of ${shown.length} player${shown.length === 1 ? " has" : "s have"} sealed. Rankings appear once the first result is entered on election night.</p>`;
       html += `<h3>Sealed</h3>` + (sealed.length
-        ? `<ul class="sealed-list">${sealed.map(p => `<li><span class="seal-icon">SEALED</span>${esc(p.display_name)}${you(p.id)}</li>`).join("")}</ul>`
+        ? `<ul class="sealed-list">${sealed.map(p => `<li><span class="seal-icon">SEALED</span>${esc(p.display_name)}${you(p.id)}${grpTag(p)}</li>`).join("")}</ul>`
         : `<p class="score-wait">No one has sealed yet.</p>`);
       if (open.length) {
-        html += `<h3>${pastDeadline() ? "Didn't seal" : "Not sealed yet"}</h3><ul class="sealed-list">${open.map(p => `<li class="no">${esc(p.display_name)}${you(p.id)}</li>`).join("")}</ul>`;
+        html += `<h3>${pastDeadline() ? "Didn't seal" : "Not sealed yet"}</h3><ul class="sealed-list">${open.map(p => `<li class="no">${esc(p.display_name)}${you(p.id)}${grpTag(p)}</li>`).join("")}</ul>`;
       }
       el.innerHTML = html;
       return;
@@ -789,7 +794,7 @@
       (a, b) => a.called === b.called && missKey(a) === missKey(b));
     const byMiss = placeify(rows.filter(r => r.avg_miss !== null).map(r => ({ ...r })).sort((a, b) => (missKey(a) - missKey(b)) || byName(a, b)),
       (a, b) => missKey(a) === missKey(b));
-    const tr = (r, cells) => `<tr class="${r.id === uid() ? "me" : ""}"><td class="place">${medal(r.place)}</td><td>${esc(r.display_name)}${you(r.id)}</td>${cells}</tr>`;
+    const tr = (r, cells) => `<tr class="${r.id === uid() ? "me" : ""}"><td class="place">${medal(r.place)}</td><td>${esc(r.display_name)}${you(r.id)}${grpTag(r)}</td>${cells}</tr>`;
     html += docs.results.final
       ? `<p class="lb-status final"><span class="seal-icon">FINAL</span>All results are in. These are the final standings. · ${rows.length} sealed player${rows.length === 1 ? "" : "s"}</p>`
       : `<p class="lb-status"><span class="live-dot" aria-hidden="true"></span><span><b>Results are still coming in</b> · ${racesIn} of 16 races called. Standings may change as more races are called. · ${rows.length} sealed player${rows.length === 1 ? "" : "s"}</span></p>`;
