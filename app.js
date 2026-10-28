@@ -20,8 +20,7 @@
   const GROUPS = [
     { key: "polisci", code: "POSC", name: "Political science academics", desc: "PhD students and faculty, at any university", short: "Political Science" },
     { key: "undergrad", code: "UWUG", name: "UW undergrads", desc: "current UW–Madison undergraduate students", short: "UW Undergrads" },
-    { key: "friends", code: "FRND", name: "Friends", short: "Friends" },
-    { key: "family", code: "FMLY", name: "Family", short: "Family" },
+    { key: "friends", code: "F&F", name: "Friends & family", short: "Friends & Family" },
   ];
   const GROUP_BY = Object.fromEntries(GROUPS.map(g => [g.key, g]));
   // Senate seats decided before the game: 65 seats not up in 2026 (R 31, D 34 incl. King and Sanders)
@@ -752,7 +751,7 @@
   // Small group tag shown after names on the Everyone view
   const grpTag = p => {
     const g = GROUP_BY[p.grp];
-    return lbFilter === "all" && g ? ` <span class="gtag g-${g.code.toLowerCase()}" title="${g.name}">${g.code}</span>` : "";
+    return lbFilter === "all" && g ? ` <span class="gtag g-${g.key}" title="${esc(g.name)}">${esc(g.code)}</span>` : "";
   };
   function renderBoard() {
     const el = $("leaderboard");
@@ -832,7 +831,7 @@
     const opt = p => `<option value="${esc(p.id)}">${esc(p.display_name)}</option>`;
     const html = GROUPS.map(g => {
       const inG = list.filter(p => p.grp === g.key);
-      return inG.length ? `<optgroup label="${g.name}">${inG.map(opt).join("")}</optgroup>` : "";
+      return inG.length ? `<optgroup label="${esc(g.name)}">${inG.map(opt).join("")}</optgroup>` : "";
     }).join("");
     if (sel.dataset.html !== html) { sel.innerHTML = html; sel.dataset.html = html; }
     sel.value = compareId || "";
