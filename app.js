@@ -137,12 +137,19 @@
       html = `<p><strong>Picks closed at 6:00 p.m. ET on Nov 3.</strong> Yours weren't sealed, so they don't count this time.</p>`;
       el.className = "banner closed";
     } else {
-      const when = `Picks close in <b>${timeLeft(left)}</b> (Tue, Nov 3, 6:00 p.m. ET).`;
-      html = filled === 16
-        ? `<p><strong>Your picks aren't sealed yet.</strong> All 16 are filled in. Seal them before the deadline or they won't count. ${when}</p>`
-        : `<p><strong>You haven't sealed your picks yet.</strong> You've filled in ${filled} of 16 races. ${when}</p>`;
+      const urgent = left < 6 * 3600 * 1000;
+      const when = `<b>${timeLeft(left)}</b>`;
+      if (urgent) {
+        html = filled === 16
+          ? `<p><strong>Your picks aren't sealed yet.</strong> All 16 are filled in. Seal them before picks close in ${when} or they won't count.</p>`
+          : `<p><strong>You haven't sealed your picks yet.</strong> You've filled in ${filled} of 16 races. Picks close in ${when}, and unsealed picks won't count.</p>`;
+      } else {
+        html = filled === 16
+          ? `<p><strong>All 16 picks are in and saved, but not sealed.</strong> There's no rush. Seal them once you're sure, any time before picks close in ${when}. Sealing is final.</p>`
+          : `<p><strong>You haven't sealed your picks yet.</strong> You've filled in ${filled} of 16 races. Your picks save automatically, so you can leave and come back any time. Seal them once you're sure, before picks close in ${when}.</p>`;
+      }
       if (tab !== "picks") html += `<button type="button" class="btn" id="banner-go">Go to your picks</button>`;
-      el.className = "banner" + (left < 6 * 3600 * 1000 ? " urgent" : "");
+      el.className = "banner" + (urgent ? " urgent" : "");
     }
     el.innerHTML = html;
     el.hidden = false;
@@ -564,7 +571,8 @@
           : "Select a winner, then enter how many points you think they'll win by. For example, if you think they'll win 52% to 48%, enter 4. Click a winner again to clear a race.";
       }
     }
-    head.innerHTML = `<h2>${title}</h2><span class="count">${n} / 16 placed</span><span class="spacer"></span>${right}`;
+    const canSave = key === "results" ? isAdmin() : !docs.me.sealed && !pastDeadline();
+    head.innerHTML = `<h2>${title}</h2><span class="count">${n} / 16 placed</span>${canSave && touched ? `<span class="saved" id="saved-ind">${savedText(key)}</span>` : ""}<span class="spacer"></span>${right}`;
     $("entry-note").textContent = note;
     const sealBtn = $("seal"); if (sealBtn) sealBtn.onclick = () => { confirmOpen = "seal"; renderConfirm(); };
     const clear = $("clear"); if (clear) clear.onclick = () => { confirmOpen = "clear"; renderConfirm(); };
@@ -591,7 +599,7 @@
       return;
     }
     if (confirmOpen === "seal" && key === "me" && editable() && complete(docs.me.picks)) {
-      slot.innerHTML = `<div class="confirm warn"><p><strong>Sealing is permanent.</strong> Once you seal, you can't change or unseal any of your 16 picks, even before the deadline. You'll be able to compare with every other player who has sealed.</p><button type="button" class="btn" id="seal-yes">Seal my picks</button><button type="button" class="btn ghost" id="seal-no">Cancel</button></div>`;
+      slot.innerHTML = `<div class="confirm warn"><p><strong>Sealing is permanent.</strong> Your picks already save automatically, so you don't need to seal to keep them. Once you seal, you can't change or unseal any of your 16 picks, even before the deadline. You'll be able to compare with every other player who has sealed.</p><button type="button" class="btn" id="seal-yes">Seal my picks</button><button type="button" class="btn ghost" id="seal-no">Cancel</button></div>`;
       $("seal-yes").onclick = seal;
       $("seal-no").onclick = () => { confirmOpen = false; renderConfirm(); };
       return;
@@ -896,6 +904,11 @@
   }).observe($("plot"));
 
   // ---- saving ----
+  const savedText = key => (dirty[key] || inflight[key] ? "Saving…" : "✓ Saved");
+  function showSaved(key) {
+    const el = $("saved-ind");
+    if (el && key === editKey()) el.textContent = savedText(key);
+  }
   function queueWrite(key) {
     dirty[key] = true;
     entryError = "";
@@ -931,6 +944,7 @@
     if (again[key]) { again[key] = false; return flush(key); }
     dirty[key] = false;
     setStatus("Saved · live", true);
+    showSaved(key);
   }
   async function settle(key) {
     clearTimeout(timers[key]);
