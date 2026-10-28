@@ -46,6 +46,7 @@
   </div>
 
   <div class="banner" id="seal-banner" role="status" hidden></div>
+  <div class="banner grp-check" id="grp-check" hidden></div>
 
   <section class="panel" id="auth" aria-label="Sign in" hidden>
     <div class="auth-grid">
@@ -69,11 +70,12 @@
         <form class="form" id="join-form">
           <label class="field">Display name<input type="text" id="join-name" maxlength="40" autocomplete="nickname" required></label>
           <fieldset class="field choice">
-            <legend>How do you know Riley?</legend>
-            <label><input type="radio" name="join-grp" value="polisci" required> Political Science Department</label>
-            <label><input type="radio" name="join-grp" value="friends"> Friends</label>
-            <label><input type="radio" name="join-grp" value="family"> Family</label>
-            <span class="hint">Everyone competes on the overall leaderboard. Your answer also places you on a leaderboard with just your group. You can change it later.</span>
+            <legend>Which group fits you best?</legend>
+            <label><input type="radio" name="join-grp" value="polisci" required><span><b>Political science academics:</b> PhD students and faculty, at any university</span></label>
+            <label><input type="radio" name="join-grp" value="undergrad"><span><b>UW undergrads:</b> current UW–Madison undergraduate students</span></label>
+            <label><input type="radio" name="join-grp" value="friends"><span><b>Friends</b></span></label>
+            <label><input type="radio" name="join-grp" value="family"><span><b>Family</b></span></label>
+            <span class="hint">Everyone competes on the overall leaderboard. You'll also be ranked within your group. You can change it later.</span>
           </fieldset>
           <label class="field">Game password<input type="password" id="join-code" autocomplete="off" required></label>
           <button type="submit" class="btn">Join</button>
@@ -102,7 +104,7 @@
         <ul>
           <li><b>Winners called:</b> how many races you picked the right winner in. Ties go to whoever's margins were closer to the real results.</li>
           <li><b>Average miss:</b> how far your margins were from the real ones, in points, averaged across races. Lower is better.</li>
-          <li><b>Leaderboards:</b> every sealed player is ranked on both metrics, overall and within your group (Political Science Department, Friends or Family). The top three get gold, silver and bronze, and tied players share a place.</li>
+          <li><b>Leaderboards:</b> every sealed player is ranked on both metrics, overall and within your group. The top three get gold, silver and bronze, and tied players share a place.</li>
         </ul>
       </section>
       <section>

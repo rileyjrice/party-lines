@@ -314,3 +314,11 @@ td.win { font-weight: 700; }
 .compare-note { font-size: 13px; color: var(--ink-3); }
 .compare-note:empty { display: none; }
 .saved { font-family: var(--font-data); font-size: 12px; color: var(--ok); }
+
+/* Group choices with descriptions, and the one-time group check */
+.choice label { align-items: flex-start; }
+.choice label input { margin-top: 3px; flex: none; }
+.choice label b { font-weight: 600; }
+.banner.grp-check { border-color: var(--blue); }
+.banner.grp-check select { font: inherit; font-size: 14px; padding: 7px 8px; border: 1.5px solid var(--rule); border-radius: 8px; background: var(--bg); color: var(--ink); max-width: 100%; }
+.banner.grp-check .msg:empty { display: none; }

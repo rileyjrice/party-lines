@@ -18,7 +18,8 @@
   const BY_ID = Object.fromEntries(STATES.map(s => [s.id, s]));
   // Sub-leaderboards. Keys match the check constraint on profiles.grp.
   const GROUPS = [
-    { key: "polisci", name: "Political Science Department", short: "Political Science" },
+    { key: "polisci", name: "Political science academics", desc: "PhD students and faculty, at any university", short: "Political Science" },
+    { key: "undergrad", name: "UW undergrads", desc: "current UW–Madison undergraduate students", short: "UW Undergrads" },
     { key: "friends", name: "Friends", short: "Friends" },
     { key: "family", name: "Family", short: "Family" },
   ];
@@ -117,6 +118,34 @@
     return `<div class="sb-track" role="img" aria-label="Senate: ${sc.d} Democrats, ${sc.i} independents, ${sc.r} Republicans, ${sc.open} undecided">` +
       `<span class="sb-d" style="width:${w(sc.d)}"></span><span class="sb-i" style="width:${w(sc.i)}"></span><span class="sb-o" style="width:${w(sc.open)}"></span><span class="sb-r" style="width:${w(sc.r)}"></span><i class="sb-mid"></i></div>` +
       `<div class="sb-labels"><span>${seatText(sc)}</span><span class="sb-ctl ${sc.control.cls}">${sc.control.text}</span></div>`;
+  }
+
+  const groupOptions = sel => GROUPS.map(g =>
+    `<option value="${g.key}"${sel === g.key ? " selected" : ""}>${g.name}${g.desc ? ` (${g.desc})` : ""}</option>`).join("");
+
+  // ---- one-time "check your group" notice for people who joined before the groups changed ----
+  function renderGroupCheck() {
+    const el = $("grp-check");
+    if (!me || me.is_admin || me.grp_confirmed !== false) { el.hidden = true; return; }
+    if (!el.hidden && el.contains(document.activeElement)) return; // don't redraw while they're choosing
+    el.innerHTML = `<p><strong>The leaderboard groups have been updated.</strong> Make sure you're in the right one:</p>` +
+      `<select id="grp-check-sel" aria-label="Your group">${groupOptions(me.grp)}</select>` +
+      `<button type="button" class="btn" id="grp-check-ok">Looks good</button><span class="msg error" id="grp-check-msg"></span>`;
+    el.hidden = false;
+    $("grp-check-ok").onclick = async () => {
+      const btn = $("grp-check-ok"), grp = $("grp-check-sel").value;
+      btn.disabled = true;
+      const { data, error } = await sb.rpc("set_group", { grp });
+      if (error || !data || !data.ok) {
+        btn.disabled = false;
+        $("grp-check-msg").textContent = (data && data.error) || (error && error.message) || "Couldn't save your group.";
+        return;
+      }
+      me.grp = grp;
+      me.grp_confirmed = true;
+      await refreshLists();
+      renderAll();
+    };
   }
 
   // ---- seal reminder banner (shown to players who haven't sealed) ----
@@ -713,7 +742,7 @@
   function boardBar() {
     const btns = [{ key: "all", short: "Everyone" }].concat(GROUPS).map(g =>
       `<button type="button" data-filter="${g.key}" aria-pressed="${lbFilter === g.key}">${g.short}</button>`).join("");
-    const opts = GROUPS.map(g => `<option value="${g.key}"${me.grp === g.key ? " selected" : ""}>${g.name}</option>`).join("");
+    const opts = groupOptions(me.grp);
     const mine = isAdmin()
       ? `<span class="my-grp">You're on every group's leaderboard as host</span>`
       : `<label class="my-grp">Your group <select id="my-grp">${opts}</select></label>`;
@@ -839,6 +868,7 @@
   function renderAll() {
     renderChrome();
     renderBanner();
+    renderGroupCheck();
     if (!me) return;
     if (tab === "leaderboard") {
       const rows = rowsFor();
@@ -887,6 +917,7 @@
       return;
     }
     me.grp = grp;
+    me.grp_confirmed = true;
     await refreshLists();
     renderAll();
   });
@@ -1085,7 +1116,7 @@
       return;
     }
     setStatus("Connecting…", false);
-    const { data: prof, error } = await sb.from("profiles").select("id, display_name, is_admin, grp").eq("id", id).maybeSingle();
+    const { data: prof, error } = await sb.from("profiles").select("id, display_name, is_admin, grp, grp_confirmed").eq("id", id).maybeSingle();
     if (error) { setStatus("Couldn't connect · reload to retry", false); renderAll(); return; }
     me = prof || null;
     if (!me) {
@@ -1146,7 +1177,7 @@
     e.preventDefault();
     const msg = $("join-msg"), btn = e.target.querySelector("button[type=submit]");
     const picked = e.target.querySelector("input[name=join-grp]:checked");
-    if (!picked) { msg.className = "msg error"; msg.textContent = "Choose how you know Riley."; return; }
+    if (!picked) { msg.className = "msg error"; msg.textContent = "Choose the group that fits you best."; return; }
     btn.disabled = true;
     msg.className = "msg";
     msg.textContent = "Joining…";

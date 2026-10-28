@@ -40,7 +40,10 @@ create table if not exists public.profiles (
 -- grp: which sub-leaderboard you're in, besides the overall one. Players can change it any time.
 alter table public.profiles add column if not exists grp text not null default 'friends';
 alter table public.profiles drop constraint if exists profiles_grp_check;
-alter table public.profiles add constraint profiles_grp_check check (grp in ('polisci', 'friends', 'family'));
+alter table public.profiles add constraint profiles_grp_check check (grp in ('polisci', 'undergrad', 'friends', 'family'));
+-- grp_confirmed: false for people who joined before the groups changed, so the page asks them to check theirs once
+alter table public.profiles add column if not exists grp_confirmed boolean not null default false;
+alter table public.profiles alter column grp_confirmed set default true;
 create unique index if not exists profiles_display_name_unique on public.profiles (lower(btrim(display_name)));
 
 -- races: { "GA": { "side": "L" | "R", "pts": 3.5 }, ... }
@@ -261,8 +264,8 @@ begin
   if char_length(v_name) not between 1 and 40 then
     return jsonb_build_object('ok', false, 'error', 'Pick a display name of 1 to 40 characters.');
   end if;
-  if join_game.grp is null or join_game.grp not in ('polisci', 'friends', 'family') then
-    return jsonb_build_object('ok', false, 'error', 'Choose how you know Riley.');
+  if join_game.grp is null or join_game.grp not in ('polisci', 'undergrad', 'friends', 'family') then
+    return jsonb_build_object('ok', false, 'error', 'Choose the group that fits you best.');
   end if;
   select s.join_code_hash into h from private.game_settings s where s.id = 1;
   if h is null then
@@ -285,10 +288,10 @@ $$;
 create or replace function public.set_group(grp text) returns jsonb
 language plpgsql security definer set search_path = '' as $$
 begin
-  if set_group.grp is null or set_group.grp not in ('polisci', 'friends', 'family') then
+  if set_group.grp is null or set_group.grp not in ('polisci', 'undergrad', 'friends', 'family') then
     return jsonb_build_object('ok', false, 'error', 'Unknown group.');
   end if;
-  update public.profiles p set grp = set_group.grp where p.id = auth.uid();
+  update public.profiles p set grp = set_group.grp, grp_confirmed = true where p.id = auth.uid();
   if not found then
     return jsonb_build_object('ok', false, 'error', 'Join the game first.');
   end if;
