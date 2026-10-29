@@ -547,7 +547,7 @@
     const path = e.target.closest("path[data-st]");
     if (path) showTip(path, e.clientX, e.clientY);
   });
-  document.addEventListener("pointerdown", e => { if (!e.target.closest("#maps")) hideTip(); });
+  document.addEventListener("pointerdown", e => { if (!e.target.closest("#maps, #dist-grid")) hideTip(); });
   window.addEventListener("scroll", () => { if (!tip.hidden) hideTip(); }, { passive: true });
 
   // ---- entry panel (your picks, or results for admins) ----
@@ -969,9 +969,20 @@
     head.innerHTML = `<h2>Everyone's picks</h2><p class="panel-lede">${rows.length} sealed player${rows.length === 1 ? "" : "s"}. Each dot is one player's margin, Democrats and independents to the left of even, Republicans to the right. Your pick is ringed. Hover or tap a dot to see whose it is.</p>`;
     grid.innerHTML = STATES.map(st => distChart(st, rows, names)).join("");
   }
-  $("dist-grid").addEventListener("pointermove", e => {
-    const dot = e.target.closest("circle.d-dot");
-    if (!dot) { hideTip(); return; }
+  // On touch screens, a tap picks the nearest dot within a fingertip's reach
+  function dotAt(e, reach) {
+    const hit = e.target.closest("circle.d-dot");
+    if (hit) return hit;
+    const svg = e.target.closest(".dist-card svg");
+    if (!svg) return null;
+    let best = null, bestD = reach;
+    svg.querySelectorAll("circle.d-dot").forEach(c => {
+      const r = c.getBoundingClientRect(), d = Math.hypot(r.left + r.width / 2 - e.clientX, r.top + r.height / 2 - e.clientY);
+      if (d < bestD) { bestD = d; best = c; }
+    });
+    return best;
+  }
+  function showDotTip(dot, e) {
     const st = BY_ID[dot.dataset.st], v = +dot.dataset.v;
     const p = players.find(x => x.id === dot.dataset.id);
     const c = chipColor(st, v);
@@ -983,6 +994,15 @@
     if (topY + rr.height > window.innerHeight - 8) topY = e.clientY - rr.height - 14;
     tip.style.left = Math.max(8, left) + "px";
     tip.style.top = Math.max(8, topY) + "px";
+  }
+  $("dist-grid").addEventListener("pointermove", e => {
+    if (e.pointerType !== "mouse") return;
+    const dot = dotAt(e, 0);
+    if (dot) showDotTip(dot, e); else hideTip();
+  });
+  $("dist-grid").addEventListener("pointerdown", e => {
+    const dot = dotAt(e, e.pointerType === "mouse" ? 0 : 22);
+    if (dot) showDotTip(dot, e); else hideTip();
   });
   $("dist-grid").addEventListener("pointerleave", e => { if (e.pointerType === "mouse") hideTip(); });
   $("cmp-view").addEventListener("click", async e => {
