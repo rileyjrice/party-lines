@@ -158,10 +158,13 @@
     <span class="compare-note" id="compare-note"></span>
   </div>
 
-  <section class="panel" id="pf-sec" aria-label="Players' Forecast" hidden>
+  <section class="panel pf" id="pf-sec" aria-label="Players' Forecast" hidden>
+    <div class="pf-text">
     <h2>Players' Forecast</h2>
     <p class="panel-lede"><b>How it works.</b> For each race, we take every sealed player's pick and use the <b>median</b> margin: half of players picked something bluer, half something redder. A state goes to whichever candidate more than half of players picked, and the margin is how big the typical player expected the win to be. Using the median keeps a few extreme picks from pulling the forecast one way or the other. It updates as more players seal.</p>
     <p class="hint" id="pf-note"></p>
+    </div>
+    <div class="pf-map" id="pf-map"></div>
   </section>
 
   <section class="panel dist" id="dist-sec" aria-label="Everyone's picks" hidden>

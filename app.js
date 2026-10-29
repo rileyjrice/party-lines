@@ -1057,7 +1057,11 @@
     const boardMap = member && tab === "leaderboard";
     $("maps-sec").hidden = !(game || boardMap);
     $("maps-sec").classList.toggle("solo", boardMap);
-    $("maps-sec").classList.toggle("solo-wide", pfView);
+    // In the Players' Forecast view, the map moves into the forecast box (text left, map right)
+    const mapsSec = $("maps-sec");
+    if (pfView && mapsSec.parentNode !== $("pf-map")) $("pf-map").appendChild(mapsSec);
+    if (!pfView && mapsSec.parentNode === $("pf-map")) $("line-sec").before(mapsSec);
+    mapsSec.classList.toggle("in-pf", pfView);
     $("line-sec").hidden = !game || pfView;
     $("entry-sec").hidden = !member || !(tab === "picks" || tab === "results");
     $("score").hidden = !member || dist || pfView || !(tab === "picks" || tab === "compare");
