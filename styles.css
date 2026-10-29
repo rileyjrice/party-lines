@@ -399,7 +399,8 @@ tr.model.mt-pf td:first-child { box-shadow: inset 2px 0 0 var(--blue), inset 4px
 tr.model.mt-pf .model-name { color: var(--ink); }
 .mtag.mt-pf { background: var(--ink-2); color: var(--bg); }
 /* Players' Forecast: one box, description on the left, map on the right */
-.panel.pf { grid-template-columns: minmax(240px, 1fr) minmax(0, 2fr); gap: 20px 28px; align-items: start; }
+.panel.pf { grid-template-columns: min-content minmax(0, 1fr); gap: 20px 32px; align-items: start; }
+.pf-text h2 { white-space: nowrap; } /* the title sets the text column's width */
 .pf-text { display: grid; gap: 12px; align-content: start; }
 @media (max-width: 860px) { .panel.pf { grid-template-columns: 1fr; } }
 #maps-sec.in-pf { border: 0; background: none; padding: 0; }
