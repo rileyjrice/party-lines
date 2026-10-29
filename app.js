@@ -242,9 +242,11 @@
     return m && hasModel(m.id) ? { id: compareId, display_name: m.name, model: m.id } : null;
   };
   const target = () => modelTarget() || comparable().find(p => p.id === compareId) || null;
+  // Admins can see every sealed player's picks without sealing (see the disclaimer under Rules → Notes)
+  const canSeeSealed = () => docs.me.sealed || isAdmin();
   function compareSeal(t) {
     const n = esc(t.display_name);
-    const mine = docs.me.sealed, theirs = !!t.sealed;
+    const mine = canSeeSealed(), theirs = !!t.sealed;
     if (mine && theirs) return null;
     const late = pastDeadline();
     if (!mine && !theirs) return {
@@ -937,7 +939,7 @@
   }
   function renderDist() {
     const head = $("dist-head"), grid = $("dist-grid");
-    if (!docs.me.sealed) {
+    if (!canSeeSealed()) {
       head.innerHTML = `<p class="score-wait">Seal your picks to see everyone's. Once you've sealed, every sealed player's margins show up here, race by race.</p>`;
       grid.innerHTML = "";
       return;
@@ -1228,7 +1230,7 @@
   async function loadThem() {
     const t = target();
     if (t && t.model) { themFor = null; return; }
-    if (!t || !t.sealed || !docs.me.sealed) { themFor = null; docs.them = emptyDoc(); return; }
+    if (!t || !t.sealed || !canSeeSealed()) { themFor = null; docs.them = emptyDoc(); return; }
     if (themFor === t.id) return;
     const id = t.id;
     const { data } = await sb.from("picks").select("races, sealed, sealed_at").eq("user_id", id).maybeSingle();
@@ -1237,7 +1239,7 @@
     renderAll();
   }
   async function loadEveryone() {
-    if (!docs.me.sealed) { everyone = []; return; }
+    if (!canSeeSealed()) { everyone = []; return; }
     const { data, error } = await sb.from("picks").select("user_id, races").eq("sealed", true);
     if (!error && data) everyone = data;
   }

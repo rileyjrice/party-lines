@@ -220,11 +220,11 @@ drop policy if exists "members read profiles" on public.profiles;
 create policy "members read profiles" on public.profiles
   for select to authenticated using (private.is_member());
 
--- picks: your own row always; someone else's only when you've both sealed
+-- picks: your own row always; someone else's only when you've both sealed (admins can read any sealed row)
 drop policy if exists "read own or mutually sealed picks" on public.picks;
 create policy "read own or mutually sealed picks" on public.picks
   for select to authenticated
-  using (user_id = (select auth.uid()) or (sealed and private.i_have_sealed()));
+  using (user_id = (select auth.uid()) or (sealed and (private.i_have_sealed() or private.is_admin())));
 
 drop policy if exists "insert own picks" on public.picks;
 create policy "insert own picks" on public.picks
