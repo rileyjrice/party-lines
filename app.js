@@ -876,7 +876,7 @@
     const winsList = withModels(byWins, (m, r) => m.called > r.called || (m.called === r.called && missKey(m) < missKey(r)));
     const missList = withModels(byMiss, (m, r) => missKey(m) < missKey(r)).filter(r => !(r.model && r.avg_miss === null));
     const tr = (r, cells) => r.model
-      ? `<tr class="model"><td class="place"></td><td><span class="model-name">${esc(r.display_name)}</span> <span class="mtag mt-${r.model}">MODEL</span></td>${cells}</tr>`
+      ? `<tr class="model mt-${r.model}"><td class="place"></td><td><span class="model-name">${esc(r.display_name)}</span> <span class="mtag mt-${r.model}">MODEL</span></td>${cells}</tr>`
       : `<tr class="${r.id === uid() ? "me" : ""}"><td class="place">${medal(r.place)}</td><td>${esc(r.display_name)}${you(r.id)}${grpTag(r)}</td>${cells}</tr>`;
     html += docs.results.final
       ? `<p class="lb-status final"><span class="seal-icon">FINAL</span>All results are in. These are the final standings. · ${rows.length} sealed player${rows.length === 1 ? "" : "s"}</p>`
@@ -892,7 +892,7 @@
           : `<p class="score-wait">Appears once a race other than Montana has a result.</p>`) +
       `</div></div>` +
       (models.length
-        ? `<p class="hint model-note">Forecasts from Silver Bulletin and FiftyPlusOne are shown for comparison and aren't ranked. Party Lines isn't affiliated with either; names belong to their owners.</p>`
+        ? `<p class="hint model-note">Forecasts from <a href="https://www.natesilver.net/p/nate-silver-2026-midterm-election-senate-model" target="_blank" rel="noopener">Silver Bulletin</a> and <a href="https://fiftyplusone.news/forecast/senate" target="_blank" rel="noopener">FiftyPlusOne</a> are shown for comparison and are unranked. Party Lines is not affiliated with or endorsed by either. All trademarks are the property of their respective owners.</p>`
         : "");
     el.innerHTML = html;
   }

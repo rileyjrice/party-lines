@@ -334,12 +334,18 @@ td.win { font-weight: 700; }
 .gtag.g-admin { --gc: var(--ink-3); }
 
 /* Model benchmarks: grey italic rows with solid brand-colored tags, never ranked */
-tr.model td { color: var(--ink-3); }
-tr.model .model-name { font-style: italic; }
+/* Brand accents sampled from each site: Silver Bulletin green, FiftyPlusOne purple */
+tr.model.mt-silver { --mc: #00C832; } tr.model.mt-fiftyplusone { --mc: #8A2BC2; }
+tr.model td { color: var(--ink); background: color-mix(in srgb, var(--mc) 12%, transparent); }
+tr.model td:first-child { box-shadow: inset 4px 0 0 var(--mc); border-radius: 6px 0 0 6px; }
+tr.model td:last-child { border-radius: 0 6px 6px 0; }
+tr.model .model-name { font-style: italic; font-weight: 600; color: color-mix(in srgb, var(--mc) 70%, var(--ink)); }
 .mtag { display: inline-block; margin-left: 6px; padding: 1px 6px; border-radius: 4px; font-family: var(--font-data); font-size: 10px; font-weight: 500; font-style: normal; letter-spacing: 0.04em; vertical-align: 1px; }
-.mtag.mt-silver { background: #39E75F; color: #04220D; }
-.mtag.mt-fiftyplusone { background: #6D28D9; color: #FFFFFF; }
+.mtag.mt-silver { background: #00C832; color: #04220D; }
+.mtag.mt-fiftyplusone { background: #8A2BC2; color: #FFFFFF; }
 .model-note { margin: 0; }
+.model-note a { color: inherit; text-decoration: underline; text-underline-offset: 2px; }
+.board table { border-collapse: separate; border-spacing: 0 3px; }
 .entry-switch-row { flex: 0 0 100%; }
 
 /* Compare → Everyone: dot plots, one per race */
