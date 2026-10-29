@@ -39,6 +39,8 @@
   let players = [], board = [];
   const docs = { me: emptyDoc(), them: emptyDoc(), results: { picks: {}, final: false } };
   MODELS.forEach(m => { docs[modelKey(m.id)] = { picks: {} }; });
+  docs.pf = { picks: {} }; // Players' Forecast: per-race medians shaped like picks
+  let pfStats = {};        // per race: { n, left, right, median }
   let entryTarget = "results"; // what an admin is entering on the Results entry tab: "results" or a model id
   let themFor = null;
   const dirty = {}, inflight = {}, again = {}, timers = {};
@@ -46,7 +48,7 @@
   let confirmOpen = false, entryError = "";
   let tab = load("pl-tab") || "picks";
   let compareId = load("pl-compare");
-  let compareView = load("pl-cmpview") === "one" ? "one" : "all";
+  let compareView = ["all", "pf", "one"].includes(load("pl-cmpview")) ? load("pl-cmpview") : "all";
   let everyone = []; // every sealed player's picks, for the Everyone view (visible once you've sealed)
   let lbFilter = load("pl-board") || "all";
   if (lbFilter !== "all" && !GROUP_BY[lbFilter]) lbFilter = "all";
@@ -267,6 +269,11 @@
       return [{ key: modelKey(m.id), name: m.name, visible: true }, actual];
     }
     if (tab === "results" || tab === "leaderboard") return [actual];
+    if (tab === "compare" && compareView === "pf") {
+      const pf = { key: "pf", name: "Players' Forecast", visible: hasPf() };
+      if (!pf.visible) { pf.sealedHtml = "<strong>Seal your picks to see the Players' Forecast.</strong> Everyone can see it once picks close."; pf.mapSeal = "until you seal"; }
+      return [you, pf, actual];
+    }
     if (tab === "compare") {
       const t = target();
       if (!t) return [you, actual];
@@ -489,8 +496,14 @@
       `<div class="tip-row">${st.L} (${lp}) vs ${st.R} (R)</div>` +
       (st.also ? `<div class="tip-row">Also running: ${st.also}</div>` : "") +
       (st.winnerOnly ? `<div class="tip-row">Scored on winner only</div>` : "");
-    const who = key === "results" ? "Result" : key === "me" ? "Your pick" : `${esc(row.name)}'s pick`;
+    const who = key === "results" ? "Result" : key === "me" ? "Your pick" : key === "pf" ? "Players' Forecast" : `${esc(row.name)}'s pick`;
     if (!row.visible) return html + `<div class="tip-row">${who}: <b>hidden</b></div>`;
+    if (key === "pf" && pfStats[ab]) {
+      const sx = pfStats[ab], v = signed(docs.pf.picks[ab]), c = chipColor(st, v);
+      const lead = sx.left >= sx.right ? { name: st.L, k: sx.left } : { name: st.R, k: sx.right };
+      return html + `<div class="tip-row">${who}: <span class="tip-chip" style="background:${c.bg};color:${c.fg}">${fmt(st, v)}</span></div>` +
+        `<div class="tip-row"><b>${Math.round(100 * lead.k / sx.n)}%</b> picked ${lead.name} · ${sx.n} player${sx.n === 1 ? "" : "s"}</div>`;
+    }
     const p = docs[key].picks[ab];
     const v = signed(p);
     if (v === null) {
@@ -783,18 +796,21 @@
   // ---- leaderboard ----
   const winnerOf = v => (Math.abs(v) < 0.05 ? 0 : Math.sign(v));
   // Same scoring as the server's leaderboard(): winners called, and average miss without Montana
-  function modelScores() {
-    const res = entries("results");
-    return MODELS.filter(m => hasModel(m.id)).map(m => {
-      let called = 0, n = 0, err = 0;
-      res.forEach(({ st, v }) => {
-        const g = signed(docs[modelKey(m.id)].picks[st.id]);
-        if (g === null) return;
-        if (winnerOf(g) === winnerOf(v)) called++;
-        if (!st.winnerOnly) { n++; err += Math.abs(g - v); }
-      });
-      return { id: "model:" + m.id, model: m.id, display_name: m.name, called, avg_miss: n ? err / n : null };
+  function scoreAgainstResults(picks) {
+    let called = 0, n = 0, err = 0;
+    entries("results").forEach(({ st, v }) => {
+      const g = signed(picks[st.id]);
+      if (g === null) return;
+      if (winnerOf(g) === winnerOf(v)) called++;
+      if (!st.winnerOnly) { n++; err += Math.abs(g - v); }
     });
+    return { called, avg_miss: n ? err / n : null };
+  }
+  function modelScores() {
+    const out = MODELS.filter(m => hasModel(m.id)).map(m =>
+      ({ id: "model:" + m.id, model: m.id, display_name: m.name, ...scoreAgainstResults(docs[modelKey(m.id)].picks) }));
+    if (hasPf()) out.push({ id: "model:pf", model: "pf", display_name: "Players' Forecast", ...scoreAgainstResults(docs.pf.picks) });
+    return out;
   }
   const MEDAL = ["", "1st", "2nd", "3rd"];
   function placeify(list, same) {
@@ -878,7 +894,7 @@
     const winsList = withModels(byWins, (m, r) => m.called > r.called || (m.called === r.called && missKey(m) < missKey(r)));
     const missList = withModels(byMiss, (m, r) => missKey(m) < missKey(r)).filter(r => !(r.model && r.avg_miss === null));
     const tr = (r, cells) => r.model
-      ? `<tr class="model mt-${r.model}"><td class="place"></td><td><span class="model-name">${esc(r.display_name)}</span> <span class="mtag mt-${r.model}">MODEL</span></td>${cells}</tr>`
+      ? `<tr class="model mt-${r.model}"><td class="place"></td><td><span class="model-name">${esc(r.display_name)}</span> <span class="mtag mt-${r.model}">${r.model === "pf" ? "PLAYERS" : "MODEL"}</span></td>${cells}</tr>`
       : `<tr class="${r.id === uid() ? "me" : ""}"><td class="place">${medal(r.place)}</td><td>${esc(r.display_name)}${you(r.id)}${grpTag(r)}</td>${cells}</tr>`;
     html += docs.results.final
       ? `<p class="lb-status final"><span class="seal-icon">FINAL</span>All results are in. These are the final standings. · ${rows.length} sealed player${rows.length === 1 ? "" : "s"}</p>`
@@ -893,7 +909,7 @@
             missList.map(r => tr(r, `<td class="m">${showMiss(r)}</td>`)).join("") + `</tbody></table></div>`
           : `<p class="score-wait">Appears once a race other than Montana has a result.</p>`) +
       `</div></div>` +
-      (models.length
+      (models.some(m => m.model !== "pf")
         ? `<p class="hint model-note">Forecasts from <a href="https://www.natesilver.net/p/nate-silver-2026-midterm-election-senate-model" target="_blank" rel="noopener">Silver Bulletin</a> and <a href="https://fiftyplusone.news/forecast/senate" target="_blank" rel="noopener">FiftyPlusOne</a> are shown for comparison and are unranked. Party Lines is not affiliated with or endorsed by either. All trademarks are the property of their respective owners.</p>`
         : "");
     el.innerHTML = html;
@@ -974,6 +990,7 @@
     save("pl-cmpview", compareView);
     hideTip();
     if (compareView === "all") await loadEveryone();
+    if (compareView === "pf") await loadForecast();
     renderAll();
   });
 
@@ -983,7 +1000,7 @@
     bar.hidden = tab !== "compare";
     if (bar.hidden) return;
     document.querySelectorAll("#cmp-view button").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.view === compareView)));
-    $("cmp-one").hidden = compareView === "all";
+    $("cmp-one").hidden = compareView !== "one";
     const sel = $("compare-select");
     const list = comparable();
     const waiting = others().length - list.length;
@@ -1030,6 +1047,7 @@
     document.querySelector('#tabs [data-tab="results"]').hidden = !isAdmin();
     document.querySelectorAll("#tabs button").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.tab === tab)));
     const dist = member && tab === "compare" && compareView === "all";
+    $("pf-sec").hidden = !(member && tab === "compare" && compareView === "pf");
     const game = member && !dist && (tab === "picks" || tab === "compare" || tab === "results");
     $("dist-sec").hidden = !dist;
     // The leaderboard shows the official results map, updating live as races are called
@@ -1061,6 +1079,10 @@
     if (tab === "compare" && compareView === "all") { renderDist(); return; }
     const rows = rowsFor();
     rowByKey = Object.fromEntries(rows.map(r => [r.key, r]));
+    if (tab === "compare" && compareView === "pf") {
+      const n = Math.max(0, ...Object.values(pfStats).map(x => x.n));
+      $("pf-note").textContent = hasPf() ? `Based on ${n} sealed player${n === 1 ? "" : "s"}. Hover a state for how split the picks were.` : "";
+    }
     renderMaps(rows);
     renderLine(rows);
     if (tab === "picks" || tab === "results") { syncCards(); renderEntryHead(); renderConfirm(); }
@@ -1216,6 +1238,7 @@
     if (!pl.error) players = pl.data || [];
     if (!lb.error) board = lb.data || [];
     if (pastDeadline() || isAdmin()) await loadModels();
+    await loadForecast();
     if (tab === "compare" && compareView === "all") await loadEveryone();
     if (!target()) {
       const firstModel = MODELS.find(m => hasModel(m.id));
@@ -1240,6 +1263,19 @@
     if (data) { docs.them = norm(data); themFor = id; }
     renderAll();
   }
+  async function loadForecast() {
+    const { data, error } = await sb.rpc("players_forecast");
+    if (error || !data) return;
+    const picks = {}, stats = {};
+    data.forEach(r => {
+      const m = Number(r.median);
+      picks[r.race] = Math.abs(m) < 0.05 ? { side: "R", pts: 0 } : { side: m < 0 ? "L" : "R", pts: Math.round(Math.abs(m) * 10) / 10 };
+      stats[r.race] = { n: r.n, left: r.n_left, right: r.n_right, median: m };
+    });
+    docs.pf.picks = picks;
+    pfStats = stats;
+  }
+  const hasPf = () => Object.keys(docs.pf.picks).length > 0;
   async function loadEveryone() {
     if (!canSeeSealed()) { everyone = []; return; }
     const { data, error } = await sb.from("picks").select("user_id, races").eq("sealed", true);
@@ -1318,6 +1354,7 @@
       players = []; board = [];
       docs.me = emptyDoc(); docs.them = emptyDoc(); docs.results = { picks: {}, final: false };
       MODELS.forEach(m => { docs[modelKey(m.id)] = { picks: {} }; });
+      docs.pf = { picks: {} }; pfStats = {};
       setStatus("Not signed in", false);
       renderAll();
       return;

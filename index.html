@@ -127,6 +127,7 @@
           <li><b>Ties</b> share a place. On the winners board, ties are broken by average miss. Averages are compared to two decimal places.</li>
           <li><b>Only sealed picks count.</b> Scores update live as results are entered, until the results are marked final.</li>
           <li><b>Model forecasts</b> (Silver Bulletin, FiftyPlusOne) are scored the same way but shown only for comparison, never ranked.</li>
+          <li><b>Players' Forecast</b> is the median margin of all sealed picks in each race. It's scored the same way, shown for comparison and never ranked. Before picks close, only sealed players can see it.</li>
         </ul>
           </section>
           <section>
@@ -147,6 +148,7 @@
   <div class="compare-bar" id="compare-bar" hidden>
     <div class="seg" role="group" aria-label="Compare view" id="cmp-view">
       <button type="button" data-view="all" aria-pressed="true">Everyone</button>
+      <button type="button" data-view="pf" aria-pressed="false">Players' Forecast</button>
       <button type="button" data-view="one" aria-pressed="false">One on one</button>
     </div>
     <span class="cmp-one" id="cmp-one">
@@ -155,6 +157,12 @@
     </span>
     <span class="compare-note" id="compare-note"></span>
   </div>
+
+  <section class="panel" id="pf-sec" aria-label="Players' Forecast" hidden>
+    <h2>Players' Forecast</h2>
+    <p class="panel-lede"><b>How it works.</b> For each race, we take every sealed player's pick and use the <b>median</b> margin: half of players picked something bluer, half something redder. A state goes to whichever candidate more than half of players picked, and the margin is how big the typical player expected the win to be. Using the median keeps a few extreme picks from pulling the forecast one way or the other. It updates as more players seal.</p>
+    <p class="hint" id="pf-note"></p>
+  </section>
 
   <section class="panel dist" id="dist-sec" aria-label="Everyone's picks" hidden>
     <div class="dist-head" id="dist-head"></div>

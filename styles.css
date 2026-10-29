@@ -392,3 +392,9 @@ tr.model .model-name { font-style: italic; font-weight: 600; color: color-mix(in
 .notes-cols section { display: grid; gap: 6px; align-content: start; }
 .rules details.notes .notes-cols h4 { margin: 0; }
 .rules details.notes .notes-cols ul { margin-top: 0; }
+
+/* Players' Forecast: neutral gray bar with a split blue/red stripe on the leaderboard */
+tr.model.mt-pf { --mc: #7C8291; }
+tr.model.mt-pf td:first-child { box-shadow: inset 2px 0 0 var(--blue), inset 4px 0 0 var(--red); }
+tr.model.mt-pf .model-name { color: var(--ink); }
+.mtag.mt-pf { background: var(--ink-2); color: var(--bg); }
