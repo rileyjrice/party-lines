@@ -377,5 +377,6 @@ tr.model .model-name { font-style: italic; }
 .note-pop p { margin: 0 0 8px; }
 .note-pop .btn { margin-top: 4px; }
 .note-pop a { color: var(--ink); text-decoration: underline; text-underline-offset: 2px; }
-.learn { display: flex; align-items: flex-end; gap: 8px; }
-.learn .note-btn { margin-left: auto; flex: none; }
+/* The info button sits in the card's bottom-right corner, out of the text's way */
+.card { position: relative; }
+.learn .note-btn { position: absolute; right: 12px; bottom: 12px; }
