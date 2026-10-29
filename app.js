@@ -918,23 +918,34 @@
   }
 
   // ---- Everyone view: one dot plot per race ----
-  function distChart(st, rows, names) {
-    const W = 300, H = 104, padX = 14, axisH = 18, top = 14;
-    const vals = rows.map(r => ({ id: r.user_id, v: signed((r.races || {})[st.id]) })).filter(x => x.v !== null).sort((a, b) => a.v - b.v);
+  // Shared geometry: every race uses the same ±15 scale; picks past 15 sit at the edge, marked with an arrow
+  const DIST = { W: 300, padX: 14, axisH: 18, top: 14, D: 15 };
+  const distX = v => DIST.padX + ((Math.max(-DIST.D, Math.min(DIST.D, v)) + DIST.D) / (2 * DIST.D)) * (DIST.W - 2 * DIST.padX);
+  const distVals = (st, rows) => rows.map(r => ({ id: r.user_id, v: signed((r.races || {})[st.id]) })).filter(x => x.v !== null).sort((a, b) => a.v - b.v);
+  // Stack dots in columns one dot wide
+  function distStack(vals, r) {
+    const cols = {};
+    return vals.map(d => { const c = Math.round((distX(d.v) - DIST.padX) / (2 * r)); const i = cols[c] = (cols[c] || 0) + 1; return { ...d, cx: DIST.padX + c * 2 * r, i: i - 1 }; });
+  }
+  // One dot size and one height for all 16 plots, set by the tallest stack in any race:
+  // plots grow taller first (up to a cap), and only then do all dots shrink together
+  function distLayout(rows) {
+    const tallestAt = r => Math.max(1, ...STATES.map(st => Math.max(0, ...distStack(distVals(st, rows), r).map(d => d.i + 1))));
+    const minH = 104, maxH = 190, fixed = DIST.top + DIST.axisH;
+    let r = 5.5, t = tallestAt(r);
+    let H = Math.max(minH, fixed + 2 * r * t + 2);
+    if (H > maxH) {
+      H = maxH;
+      for (let k = 0; k < 8 && fixed + 2 * r * t > H; k++) { r = Math.max(2.2, (H - fixed) / (2 * t)); t = tallestAt(r); }
+    }
+    return { r, H };
+  }
+  function distChart(st, rows, names, layout) {
+    const { W, padX, axisH, top, D } = DIST, { H } = layout, x = distX;
+    const vals = distVals(st, rows);
     const actual = signed(docs.results.picks[st.id]);
-    // Every race uses the same ±15 scale; picks past 15 sit at the edge, marked with an arrow
-    const D = 15;
-    const x = v => padX + ((Math.max(-D, Math.min(D, v)) + D) / (2 * D)) * (W - 2 * padX);
     const overL = vals.some(d => d.v < -D), overR = vals.some(d => d.v > D);
-    const room = H - axisH - top;
-    // stack dots in columns one dot wide; shrink the dots if a stack would overflow
-    const stack = r => {
-      const cols = {};
-      return vals.map(d => { const c = Math.round((x(d.v) - padX) / (2 * r)); const i = cols[c] = (cols[c] || 0) + 1; return { ...d, cx: padX + c * 2 * r, i: i - 1 }; });
-    };
-    let r = 5.5, placed = stack(r);
-    const tallest = Math.max(1, ...placed.map(d => d.i + 1));
-    if (tallest * 2 * r > room) { r = Math.max(1.6, room / (2 * tallest)); placed = stack(r); }
+    const r = layout.r, placed = distStack(vals, r);
     const base = H - axisH;
     const lab = v => (v === 0 ? "0" : (v < 0 ? (st.ind ? "I" : "D") : "R") + "+" + Math.abs(v));
     let svg = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${st.name}: ${vals.length} picks">`;
@@ -967,7 +978,8 @@
     const names = Object.fromEntries(players.map(p => [p.id, p.display_name]));
     const rows = everyone.filter(r => names[r.user_id]);
     head.innerHTML = `<h2>Everyone's picks</h2><p class="panel-lede">${rows.length} sealed player${rows.length === 1 ? "" : "s"}. Each dot is one player's margin, Democrats and independents to the left of even, Republicans to the right. Your pick is ringed. Hover or tap a dot to see whose it is.</p>`;
-    grid.innerHTML = STATES.map(st => distChart(st, rows, names)).join("");
+    const layout = distLayout(rows);
+    grid.innerHTML = STATES.map(st => distChart(st, rows, names, layout)).join("");
   }
   // On touch screens, a tap picks the nearest dot within a fingertip's reach
   function dotAt(e, reach) {
