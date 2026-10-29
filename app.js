@@ -18,7 +18,7 @@
   const BY_ID = Object.fromEntries(STATES.map(s => [s.id, s]));
   // Sub-leaderboards. Keys match the check constraint on profiles.grp.
   const GROUPS = [
-    { key: "polisci", code: "ACAD", name: "Academics", desc: "grad students and faculty, in any field, at any university", short: "Academics" },
+    { key: "polisci", code: "ACAD", name: "Academics", desc: "graduate students and faculty, at any institution", short: "Academics" },
     { key: "undergrad", code: "UWUG", name: "UW Undergrads", desc: "current UW–Madison undergraduate students", short: "UW Undergrads" },
     { key: "friends", code: "F&F", name: "Friends & Family", desc: "Riley's friends and family, and anyone else", short: "Friends & Family" },
   ];
