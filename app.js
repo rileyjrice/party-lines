@@ -540,6 +540,10 @@
     if (editKey() !== "me") return isAdmin();
     return !docs.me.sealed && !pastDeadline();
   }
+  // Ballotpedia candidate pages are First_Last, with the state added when another person shares the name
+  const BP_OVERRIDE = { "Dan Sullivan": "Dan_Sullivan_(Alaska)", "Mike Rogers": "Mike_Rogers_(Michigan)", "Mike Collins": "Mike_Collins_(Georgia)" };
+  const bpLink = name => "https://ballotpedia.org/" + (BP_OVERRIDE[name] || name.replace(/ /g, "_"));
+  const bpA = name => `<a href="${bpLink(name)}" target="_blank" rel="noopener">${name}</a>`;
   let cardsBuilt = false;
   function buildCards() {
     const wrap = $("cards");
@@ -558,7 +562,8 @@
           <button type="button" class="cand L${st.ind ? " ind" : ""}" data-side="L" aria-pressed="false">${st.L}<small>${st.ind ? "IND" : "DEM"}</small></button>
           <button type="button" class="cand R" data-side="R" aria-pressed="false">${st.R}<small>REP</small></button>
         </div>
-        <label class="by">wins by <input id="pts-${st.id}" type="number" inputmode="decimal" min="0" max="99" step="0.1" placeholder="0.0"> pts</label>${st.also ? `<p class="hint">Also running: ${st.also}.${st.winnerOnly ? " Your margin shows on the line and map, but only the winner counts toward your score." : ""}</p>` : ""}`;
+        <label class="by">wins by <input id="pts-${st.id}" type="number" inputmode="decimal" min="0" max="99" step="0.1" placeholder="0.0"> pts</label>
+        <p class="learn">Learn about the candidates on Ballotpedia ↗ ${bpA(st.L)} · ${bpA(st.R)}${st.also ? " · " + bpA(st.also.replace(/ \(.\)$/, "")) : ""}</p>${st.also ? `<p class="hint">Also running: ${st.also}.${st.winnerOnly ? " Your margin shows on the line and map, but only the winner counts toward your score." : ""}</p>` : ""}`;
       wrap.appendChild(card);
     });
     cardsBuilt = true;
