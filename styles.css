@@ -256,7 +256,7 @@ td.win { font-weight: 700; }
 .board tr.me td:first-child { border-radius: 6px 0 0 6px; }
 .board tr.me td:last-child { border-radius: 0 6px 6px 0; }
 .medal { display: inline-grid; place-items: center; width: 24px; height: 24px; border-radius: 50%; font-family: var(--font-data); font-size: 12px; font-weight: 500; color: #FFFFFF; }
-.medal.m1 { background: var(--gold); } .medal.m2 { background: var(--silver); } .medal.m3 { background: var(--bronze); }
+.medal.m1 { background: #E8B21E; color: #2A1D00; } .medal.m2 { background: var(--silver); } .medal.m3 { background: var(--bronze); }
 .medal.mx { background: transparent; color: var(--ink-3); }
 .sealed-list { margin: 0; padding: 0; list-style: none; display: flex; flex-wrap: wrap; gap: 8px; }
 .sealed-list li { display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--rule); border-radius: 999px; padding: 4px 10px; font-size: 13px; }

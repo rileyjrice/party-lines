@@ -801,8 +801,10 @@
     list.forEach((r, i) => { r.place = i > 0 && same(list[i - 1], r) ? list[i - 1].place : i + 1; });
     return list;
   }
+  // Medals are only awarded once all 16 races have results; until then everyone gets a plain number
   function medal(place) {
-    return place <= 3
+    const allIn = entries("results").length === STATES.length;
+    return allIn && place <= 3
       ? `<span class="medal m${place}" title="${MEDAL[place]} place" aria-label="${MEDAL[place]} place">${place}</span>`
       : `<span class="medal mx" aria-label="Place ${place}">${place}</span>`;
   }
