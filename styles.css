@@ -365,3 +365,4 @@ tr.model .model-name { font-style: italic; }
 #rules .panel-lede { max-width: 90ch; }
 .ask-pw { margin: -4px 0 0; }
 .ask-pw a { color: var(--ink-2); text-decoration: underline; text-underline-offset: 2px; }
+.rules details.notes h4 { margin: 12px 0 0; font-family: var(--font-display); font-weight: 800; font-size: 13px; text-transform: uppercase; letter-spacing: 0.04em; }
