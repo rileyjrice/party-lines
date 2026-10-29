@@ -380,3 +380,9 @@ tr.model .model-name { font-style: italic; }
 /* The info button sits in the card's bottom-right corner, out of the text's way */
 .card { position: relative; }
 .learn .note-btn { position: absolute; right: 12px; bottom: 12px; }
+/* Additional information: full width, Methodology and Notes side by side */
+.rules details.notes { grid-column: 1 / -1; }
+.notes-cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px 28px; margin-top: 8px; }
+.notes-cols section { display: grid; gap: 6px; align-content: start; }
+.rules details.notes .notes-cols h4 { margin: 0; }
+.rules details.notes .notes-cols ul { margin-top: 0; }
