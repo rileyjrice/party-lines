@@ -272,7 +272,7 @@
     if (tab === "compare" && compareView === "pf") {
       const pf = { key: "pf", name: "Players' Forecast", visible: hasPf() };
       if (!pf.visible) { pf.sealedHtml = "<strong>Seal your picks to see the Players' Forecast.</strong> Everyone can see it once picks close."; pf.mapSeal = "until you seal"; }
-      return [you, pf, actual];
+      return [pf];
     }
     if (tab === "compare") {
       const t = target();
@@ -501,8 +501,10 @@
     if (key === "pf" && pfStats[ab]) {
       const sx = pfStats[ab], v = signed(docs.pf.picks[ab]), c = chipColor(st, v);
       const lead = sx.left >= sx.right ? { name: st.L, k: sx.left } : { name: st.R, k: sx.right };
+      const mine = signed(docs.me.picks[ab]), mc = mine === null ? null : chipColor(st, mine);
       return html + `<div class="tip-row">${who}: <span class="tip-chip" style="background:${c.bg};color:${c.fg}">${fmt(st, v)}</span></div>` +
-        `<div class="tip-row"><b>${Math.round(100 * lead.k / sx.n)}%</b> picked ${lead.name} · ${sx.n} player${sx.n === 1 ? "" : "s"}</div>`;
+        `<div class="tip-row"><b>${Math.round(100 * lead.k / sx.n)}%</b> picked ${lead.name} · ${sx.n} player${sx.n === 1 ? "" : "s"}</div>` +
+        `<div class="tip-row">You: ${mine === null ? "<b>no pick</b>" : `<span class="tip-chip" style="background:${mc.bg};color:${mc.fg}">${fmt(st, mine)}</span>`}</div>`;
     }
     const p = docs[key].picks[ab];
     const v = signed(p);
@@ -1047,16 +1049,18 @@
     document.querySelector('#tabs [data-tab="results"]').hidden = !isAdmin();
     document.querySelectorAll("#tabs button").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.tab === tab)));
     const dist = member && tab === "compare" && compareView === "all";
-    $("pf-sec").hidden = !(member && tab === "compare" && compareView === "pf");
+    const pfView = member && tab === "compare" && compareView === "pf";
+    $("pf-sec").hidden = !pfView;
     const game = member && !dist && (tab === "picks" || tab === "compare" || tab === "results");
     $("dist-sec").hidden = !dist;
     // The leaderboard shows the official results map, updating live as races are called
     const boardMap = member && tab === "leaderboard";
     $("maps-sec").hidden = !(game || boardMap);
     $("maps-sec").classList.toggle("solo", boardMap);
-    $("line-sec").hidden = !game;
+    $("maps-sec").classList.toggle("solo-wide", pfView);
+    $("line-sec").hidden = !game || pfView;
     $("entry-sec").hidden = !member || !(tab === "picks" || tab === "results");
-    $("score").hidden = !member || dist || !(tab === "picks" || tab === "compare");
+    $("score").hidden = !member || dist || pfView || !(tab === "picks" || tab === "compare");
     $("leaderboard").hidden = !member || tab !== "leaderboard";
     $("compare-bar").hidden = !member || tab !== "compare";
     if (!member || tab !== "leaderboard") $("headline").hidden = true;
@@ -1081,7 +1085,9 @@
     rowByKey = Object.fromEntries(rows.map(r => [r.key, r]));
     if (tab === "compare" && compareView === "pf") {
       const n = Math.max(0, ...Object.values(pfStats).map(x => x.n));
-      $("pf-note").textContent = hasPf() ? `Based on ${n} sealed player${n === 1 ? "" : "s"}. Hover a state for how split the picks were.` : "";
+      $("pf-note").textContent = hasPf() ? `Based on ${n} sealed player${n === 1 ? "" : "s"}. Hover a state to see how split the picks were, next to your own pick.` : "";
+      renderMaps(rows);
+      return;
     }
     renderMaps(rows);
     renderLine(rows);

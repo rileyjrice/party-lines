@@ -398,3 +398,5 @@ tr.model.mt-pf { --mc: #7C8291; }
 tr.model.mt-pf td:first-child { box-shadow: inset 2px 0 0 var(--blue), inset 4px 0 0 var(--red); }
 tr.model.mt-pf .model-name { color: var(--ink); }
 .mtag.mt-pf { background: var(--ink-2); color: var(--bg); }
+/* Players' Forecast: one larger map, centered */
+#maps-sec.solo-wide { justify-self: center; width: 100%; max-width: 860px; }
