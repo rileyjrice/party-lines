@@ -562,7 +562,7 @@
       if (st.ind) card.dataset.ind = "";
       card.innerHTML = `
         <div class="card-top">
-          <h3>${st.name}</h3>${st.rcv ? '<span class="tag">Ranked choice</span>' : ""}${st.winnerOnly ? '<span class="tag">Winner only</span>' : ""}${st.also ? `<button type="button" class="note-btn" popovertarget="note-${st.id}" aria-label="About the ${st.name} race">ⓘ</button>` : ""}
+          <h3>${st.name}</h3>${st.rcv ? '<span class="tag">Ranked choice</span>' : ""}${st.winnerOnly ? '<span class="tag">Winner only</span>' : ""}
           <span class="mini" data-role="mini">—</span>
         </div>
         <div class="pick">
@@ -570,7 +570,7 @@
           <button type="button" class="cand R" data-side="R" aria-pressed="false">${st.R}<small>REP</small></button>
         </div>
         <label class="by">wins by <input id="pts-${st.id}" type="number" inputmode="decimal" min="0" max="99" step="0.1" placeholder="0.0"> pts</label>
-        <p class="learn">Ballotpedia ↗ ${bpA(st.L)} · ${bpA(st.R)}</p>${st.also ? `<div class="note-pop" popover id="note-${st.id}"><p><b>${st.name}</b></p><p>Also running: ${bpA(st.also.replace(/ \(.\)$/, ""))} (${st.also.match(/\((.)\)$/)[1]}).${st.winnerOnly ? " Your margin shows on the line and map, but only the winner counts toward your score." : ""}</p><button type="button" class="btn ghost" popovertarget="note-${st.id}" popovertargetaction="hide">Close</button></div>` : ""}`;
+        <p class="learn"><span>Ballotpedia ↗ ${bpA(st.L)} · ${bpA(st.R)}</span>${st.also ? `<button type="button" class="note-btn" popovertarget="note-${st.id}" aria-label="About the ${st.name} race">ⓘ</button>` : ""}</p>${st.also ? `<div class="note-pop" popover id="note-${st.id}"><p><b>${st.name}</b></p><p>Also running: ${bpA(st.also.replace(/ \(.\)$/, ""))} (${st.also.match(/\((.)\)$/)[1]}).${st.winnerOnly ? " Your margin shows on the line and map, but only the winner counts toward your score." : ""}</p><button type="button" class="btn ghost" popovertarget="note-${st.id}" popovertargetaction="hide">Close</button></div>` : ""}`;
       wrap.appendChild(card);
     });
     cardsBuilt = true;
