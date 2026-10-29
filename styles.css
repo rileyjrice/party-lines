@@ -369,3 +369,11 @@ tr.model .model-name { font-style: italic; }
 .learn { margin: 0; font-size: 12px; color: var(--ink-3); line-height: 1.45; }
 .learn a { color: var(--ink-2); text-decoration: underline; text-underline-offset: 2px; }
 .learn a:hover { color: var(--ink); }
+
+/* Small ⓘ note on a card, opening a popup */
+.note-btn { border: 1.5px solid var(--rule); background: transparent; border-radius: 999px; width: 22px; height: 22px; padding: 0; font-size: 12px; line-height: 1; color: var(--ink-2); }
+.note-btn:hover { color: var(--ink); border-color: var(--ink-3); }
+.note-pop { max-width: min(340px, calc(100vw - 32px)); border: 1px solid var(--rule); border-radius: 12px; padding: 14px 16px; background: var(--surface); color: var(--ink); box-shadow: 0 10px 30px rgba(0,0,0,0.2); font-size: 14px; }
+.note-pop p { margin: 0 0 8px; }
+.note-pop .btn { margin-top: 4px; }
+.note-pop a { color: var(--ink); text-decoration: underline; text-underline-offset: 2px; }
