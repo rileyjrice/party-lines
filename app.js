@@ -420,7 +420,7 @@
   }
 
   // ---- the maps ----
-  let mapPaths = {}, mapSig = "";
+  let mapPaths = {}, mapSig = "", hatchPaths = {};
   const tip = document.createElement("div");
   tip.className = "tip";
   tip.hidden = true;
@@ -451,6 +451,11 @@
       svg.setAttribute("role", "img");
       svg.setAttribute("aria-label", key === "results" ? "Results map" : key === "me" ? "Your map" : `${label}'s map`);
       mapPaths[key] = {};
+      if (key === "results") {
+        // Light diagonal stripes mark races that are called but don't have a margin yet
+        svg.innerHTML = `<defs><pattern id="hatch-results" width="7" height="7" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><line x1="0" y1="0" x2="0" y2="7" class="hatch-line"/></pattern></defs>`;
+        hatchPaths = {};
+      }
       Object.keys(PATHS).forEach(ab => {
         const p = document.createElementNS(NS, "path");
         p.setAttribute("d", PATHS[ab]);
@@ -459,6 +464,15 @@
         if (BY_ID[ab]) p.classList.add("game");
         svg.appendChild(p);
         mapPaths[key][ab] = p;
+        if (key === "results" && BY_ID[ab]) {
+          const h = document.createElementNS(NS, "path");
+          h.setAttribute("d", PATHS[ab]);
+          h.setAttribute("class", "hatch");
+          h.setAttribute("fill", "url(#hatch-results)");
+          h.style.display = "none";
+          svg.appendChild(h);
+          hatchPaths[ab] = h;
+        }
       });
       fig.querySelector(".map-box").appendChild(svg);
       const seal = document.createElement("div");
@@ -485,7 +499,11 @@
         let fill;
         if (BY_ID[ab]) {
           let v = visible ? signed(docs[key].picks[ab]) : null;
-          if (visible && key === "results") { const res = resultOf(ab); v = res.called ? (res.v !== null ? res.v : res.w * FULL) : null; }
+          if (visible && key === "results") {
+            const res = resultOf(ab);
+            v = res.called ? (res.v !== null ? res.v : res.w * FULL) : null;
+            if (hatchPaths[ab]) hatchPaths[ab].style.display = res.called && res.v === null ? "" : "none";
+          }
           fill = v === null ? "var(--map-pending)" : chipColor(BY_ID[ab], v).bg;
         } else if (SAFE[ab]) {
           fill = SAFE[ab] === "D" ? "var(--safe-d)" : "var(--safe-r)";
