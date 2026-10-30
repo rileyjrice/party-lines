@@ -423,5 +423,5 @@ tr.model.mt-pf .model-name { color: var(--ink); }
 .wm-arrow { display: block; width: 100%; height: auto; }
 .wm-r { fill: var(--red); } .wm-d { fill: var(--blue); }
 /* Results entry: a small results map (or two small maps when entering a model forecast) */
-#maps-sec.compact { justify-self: center; width: 100%; max-width: 456px; }
-#maps-sec.compact-2 { justify-self: center; width: 100%; max-width: 880px; }
+#maps-sec.compact, #maps-sec.compact-2 { justify-self: center; width: 100%; max-width: 880px; }
+#maps-sec.compact .maps { grid-template-columns: minmax(0, 412px); justify-content: center; }
