@@ -574,6 +574,8 @@
     hotPath = path;
     path.classList.add("hot");
     path.parentNode.appendChild(path); // bring outline to front
+    const h = path.dataset.map === "results" && hatchPaths[path.dataset.st];
+    if (h) path.parentNode.appendChild(h); // keep "margin pending" stripes on top of the hovered state
     tip.innerHTML = tipHTML(path.dataset.map, path.dataset.st);
     tip.hidden = false;
     const r = tip.getBoundingClientRect();
