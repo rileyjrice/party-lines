@@ -104,11 +104,22 @@
     return STATES.every(st => { const p = picks[st.id]; return p && (p.side === "L" || p.side === "R") && typeof p.pts === "number" && p.pts > 0; });
   }
 
+  // A result is "called" once it has a winner, and scored for margin once it also has a margin.
+  // w: -1 Dem/Ind, 1 Rep, 0 even; v: the signed margin, or null while the margin is pending.
+  function resultOf(id) {
+    const p = docs.results.picks[id], v = signed(p);
+    if (v !== null) return { called: true, v, w: Math.abs(v) < 0.05 ? 0 : Math.sign(v) };
+    if (p && (p.side === "L" || p.side === "R")) return { called: true, v: null, w: p.side === "L" ? -1 : 1 };
+    return { called: false, v: null, w: null };
+  }
+  const callsIn = () => STATES.map(st => ({ st, ...resultOf(st.id) })).filter(c => c.called);
+
   // ---- senate balance ----
   function seats(key) {
     let d = BASE_D, i = 0, r = BASE_R, open = 0;
     STATES.forEach(st => {
-      const v = signed(docs[key].picks[st.id]);
+      // results count as soon as a race is called, before its margin is in
+      const v = key === "results" ? resultOf(st.id).w : signed(docs[key].picks[st.id]);
       if (v === null || Math.abs(v) < 0.05) open++;
       else if (v > 0) r++;
       else if (st.ind) i++;
@@ -212,10 +223,10 @@
     const sc = seats("results");
     let open = 0, dOpen = 0;
     STATES.forEach(st => {
-      const v = signed(docs.results.picks[st.id]);
-      if (v === null || Math.abs(v) < 0.05) { open++; if (!st.ind) dOpen++; }
+      const res = resultOf(st.id);
+      if (!res.called || res.w === 0) { open++; if (!st.ind) dOpen++; }
     });
-    const demWon = id => { const v = signed(docs.results.picks[id]); return v !== null && v <= -0.05; };
+    const demWon = id => resultOf(id).w === -1;
     if (sc.d >= 51) return { sc, party: "d", tier: SWEEP.every(demWon) ? "sweep" : sc.d >= 52 ? "flip" : "narrowly flip" };
     if (sc.r >= 50) return { sc, party: "r", tier: sc.r >= 52 ? "hold" : "narrowly hold" };
     if (sc.d + dOpen < 51 && sc.r + open < 50) return { sc, party: "i" };
@@ -335,18 +346,32 @@
       }
 
       const list = entries(key);
-      if (list.length) {
-        const dem = list.filter(e => e.v < -0.04).length, rep = list.filter(e => e.v > 0.04).length, even = list.length - dem - rep;
+      // results: called races count in the tally right away; ones without a margin are listed under the line
+      const pending = key === "results" ? callsIn().filter(c => c.v === null) : [];
+      const tallyList = key === "results" ? callsIn().map(c => ({ v: c.w })) : list;
+      if (tallyList.length) {
+        const dem = tallyList.filter(e => e.v < -0.04).length, rep = tallyList.filter(e => e.v > 0.04).length, even = tallyList.length - dem - rep;
         const tally = document.createElement("span");
         tally.className = "row-tally";
-        tally.innerHTML = `<span class="d">D/I ${dem}</span> · <span class="r">R ${rep}</span>${even ? " · even " + even : ""}${list.length < 16 ? " · " + (16 - list.length) + " to go" : ""}`;
+        tally.innerHTML = `<span class="d">D/I ${dem}</span> · <span class="r">R ${rep}</span>${even ? " · even " + even : ""}${tallyList.length < 16 ? " · " + (16 - tallyList.length) + " to go" : ""}`;
         head.appendChild(tally);
+      }
+      let pendingEl = null;
+      if (pending.length) {
+        pendingEl = document.createElement("div");
+        pendingEl.className = "row-pending";
+        pendingEl.innerHTML = `<span>Called, margin pending: ${pending.map(c => `<b>${c.st.id}</b> ${c.w < 0 ? c.st.L : c.st.R}`).join(" · ")}</span>`;
       }
       const sc = seats(key);
       const seatPill = document.createElement("span");
       seatPill.className = "row-tally row-seats";
       seatPill.innerHTML = `Senate ${seatText(sc)} · <b class="${sc.control.cls}">${sc.control.text}</b>`;
       head.appendChild(seatPill);
+      if (!list.length && pendingEl) {
+        row.appendChild(pendingEl);
+        plot.appendChild(row);
+        return;
+      }
       if (!list.length) {
         const e = document.createElement("div");
         e.className = "row-empty";
@@ -383,6 +408,7 @@
         lanes.appendChild(chip);
       });
       row.appendChild(lanes);
+      if (pendingEl) row.appendChild(pendingEl);
       plot.appendChild(row);
     });
 
@@ -458,7 +484,8 @@
       Object.entries(mapPaths[key]).forEach(([ab, p]) => {
         let fill;
         if (BY_ID[ab]) {
-          const v = visible ? signed(docs[key].picks[ab]) : null;
+          let v = visible ? signed(docs[key].picks[ab]) : null;
+          if (visible && key === "results") { const res = resultOf(ab); v = res.called ? (res.v !== null ? res.v : res.w * FULL) : null; }
           fill = v === null ? "var(--map-pending)" : chipColor(BY_ID[ab], v).bg;
         } else if (SAFE[ab]) {
           fill = SAFE[ab] === "D" ? "var(--safe-d)" : "var(--safe-r)";
@@ -475,7 +502,7 @@
         return;
       }
       seatsEl.innerHTML = seatBar(seats(key));
-      const list = entries(key);
+      const list = key === "results" ? callsIn().map(c => ({ v: c.w })) : entries(key);
       const dem = list.filter(e => e.v < -0.04).length, rep = list.filter(e => e.v > 0.04).length;
       tally.innerHTML = list.length
         ? `<span class="d">D/I ${dem}</span> · <span class="r">R ${rep}</span>${list.length < 16 ? " · " + (16 - list.length) + " to go" : ""}`
@@ -505,6 +532,10 @@
       return html + `<div class="tip-row">${who}: <span class="tip-chip" style="background:${c.bg};color:${c.fg}">${fmt(st, v)}</span></div>` +
         `<div class="tip-row"><b>${Math.round(100 * lead.k / sx.n)}%</b> picked ${lead.name} · ${sx.n} player${sx.n === 1 ? "" : "s"}</div>` +
         `<div class="tip-row">You: ${mine === null ? "<b>no pick</b>" : `<span class="tip-chip" style="background:${mc.bg};color:${mc.fg}">${fmt(st, mine)}</span>`}</div>`;
+    }
+    if (key === "results") {
+      const res = resultOf(ab);
+      if (res.called && res.v === null) return html + `<div class="tip-row">Result: <b>${res.w < 0 ? st.L : st.R}</b> wins · margin pending</div>`;
     }
     const p = docs[key].picks[ab];
     const v = signed(p);
@@ -635,10 +666,10 @@
       right = (touched && !fin ? '<button type="button" class="btn ghost" id="clear">Clear results</button>' : "") +
         (fin
           ? '<span class="locked-note"><span class="seal-icon">FINAL</span>Marked final.</span><button type="button" class="btn ghost" id="unfinal">Reopen</button>'
-          : (n ? '<button type="button" class="btn" id="final">Mark results final</button>' : ""));
+          : (callsIn().length ? '<button type="button" class="btn" id="final">Mark results final</button>' : ""));
       note = fin
         ? "The leaderboard shows these as the final standings. Reopen if a result needs to change."
-        : "Fill these in as races are called. Everyone sees them the moment you enter them.";
+        : "Select the winner as soon as a race is called; winners called updates right away. Add the margin later, once it's settled. Everyone sees results the moment you enter them.";
     } else {
       title = "Your picks";
       const d = docs.me;
@@ -660,7 +691,7 @@
         [{ id: "results", name: "Results" }].concat(MODELS).map(x =>
           `<button type="button" data-target="${x.id}" aria-pressed="${entryTarget === x.id}">${esc(x.name)}</button>`).join("") + `</div></div>`
       : "";
-    head.innerHTML = `${switcher}<h2>${title}</h2><span class="count">${n} / 16 placed</span>${canSave && touched ? `<span class="saved" id="saved-ind">${savedText(key)}</span>` : ""}<span class="spacer"></span>${right}`;
+    head.innerHTML = `${switcher}<h2>${title}</h2><span class="count">${key === "results" ? `${callsIn().length} / 16 called · ${n} with margins` : `${n} / 16 placed`}</span>${canSave && touched ? `<span class="saved" id="saved-ind">${savedText(key)}</span>` : ""}<span class="spacer"></span>${right}`;
     $("entry-note").textContent = note;
     head.querySelectorAll(".entry-switch button").forEach(b => b.onclick = async () => {
       if (b.dataset.target === entryTarget) return;
@@ -744,7 +775,7 @@
   function renderScore(rows) {
     const el = $("score");
     const people = rows.filter(r => r.key !== "results" && r.visible);
-    const results = entries("results");
+    const results = callsIn();
     let html = "<h2>Scorecard</h2>";
     if (!results.length) {
       el.innerHTML = html + `<p class="score-wait">Scores appear as soon as the first result is entered on election night.</p>`;
@@ -754,7 +785,8 @@
     const stats = {};
     people.forEach(p => { stats[p.key] = { called: 0, n: 0, mn: 0, err: 0 }; });
     const rowsOut = [];
-    results.sort((a, b) => a.v - b.v).forEach(({ st, v: actual }) => {
+    const order = c => (c.v !== null ? c.v : c.w * 100);
+    results.sort((a, b) => order(a) - order(b)).forEach(({ st, v: actual, w }) => {
       const pr = {};
       people.forEach(p => {
         const g = signed(docs[p.key].picks[st.id]);
@@ -762,10 +794,10 @@
         if (g === null) return;
         const s = stats[p.key];
         s.n++;
-        if (!st.winnerOnly) { s.mn++; s.err += Math.abs(g - actual); }
-        if (sign(g) === sign(actual)) s.called++;
+        if (!st.winnerOnly && actual !== null) { s.mn++; s.err += Math.abs(g - actual); }
+        if (sign(g) === w) s.called++;
       });
-      rowsOut.push({ st, actual, pr });
+      rowsOut.push({ st, actual, w, pr });
     });
     const avg = k => stats[k].mn ? stats[k].err / stats[k].mn : null;
     let winLeader = null, missLeader = null;
@@ -775,7 +807,8 @@
       const ma = avg(a), mb = avg(b);
       if (ma !== null && mb !== null && ma !== mb) missLeader = ma < mb ? a : b;
     }
-    html += `<p class="score-wait">${results.length} of 16 races in.</p>`;
+    const withMargin = results.filter(c => c.v !== null).length;
+    html += `<p class="score-wait">${results.length} of 16 races called${withMargin < results.length ? ` · ${withMargin} with margins` : ""}.</p>`;
     html += `<div class="duel">` + people.map(p => {
       const s = stats[p.key], a = avg(p.key);
       const badges = [winLeader === p.key ? "most winners" : "", missLeader === p.key ? "closest margins" : ""].filter(Boolean).join(" · ");
@@ -787,10 +820,12 @@
       rowsOut.map(r => `<tr><td>${r.st.name}${r.st.winnerOnly ? ' <span class="tag">Winner only</span>' : ""}</td>` +
         people.map(p => {
           const g = r.pr[p.key];
-          const mark = g === null ? "" : (sign(g) === sign(r.actual) ? '<span class="mark ok" title="Called the winner">✓</span>' : '<span class="mark miss" title="Missed the winner">✗</span>');
+          const mark = g === null ? "" : (sign(g) === r.w ? '<span class="mark ok" title="Called the winner">✓</span>' : '<span class="mark miss" title="Missed the winner">✗</span>');
           return `<td class="m ${valClass(r.st, g)}">${fmt(r.st, g)} ${mark}</td>`;
         }).join("") +
-        `<td class="m ${valClass(r.st, r.actual)}">${fmt(r.st, r.actual)}</td></tr>`).join("") +
+        (r.actual !== null
+          ? `<td class="m ${valClass(r.st, r.actual)}">${fmt(r.st, r.actual)}</td></tr>`
+          : `<td class="m ${valClass(r.st, r.w)}">${r.w < 0 ? (r.st.ind ? "I" : "D") : "R"} win · margin TBD</td></tr>`)).join("") +
       `</tbody></table></div>`;
     el.innerHTML = html;
   }
@@ -798,15 +833,18 @@
   // ---- leaderboard ----
   const winnerOf = v => (Math.abs(v) < 0.05 ? 0 : Math.sign(v));
   // Same scoring as the server's leaderboard(): winners called, and average miss without Montana
+  // Scores a forecast on the called races it covers: winners from every call, misses once a margin is in
   function scoreAgainstResults(picks) {
-    let called = 0, n = 0, err = 0;
-    entries("results").forEach(({ st, v }) => {
+    let called = 0, of = 0, n = 0, err = 0;
+    const missing = [];
+    callsIn().forEach(({ st, v, w }) => {
       const g = signed(picks[st.id]);
-      if (g === null) return;
-      if (winnerOf(g) === winnerOf(v)) called++;
-      if (!st.winnerOnly) { n++; err += Math.abs(g - v); }
+      if (g === null) { missing.push(st.name); return; }
+      of++;
+      if (winnerOf(g) === w) called++;
+      if (!st.winnerOnly && v !== null) { n++; err += Math.abs(g - v); }
     });
-    return { called, avg_miss: n ? err / n : null };
+    return { called, of, missing, avg_miss: n ? err / n : null };
   }
   function modelScores() {
     const out = MODELS.filter(m => hasModel(m.id)).map(m =>
@@ -903,7 +941,7 @@
       : `<p class="lb-status"><span class="live-dot" aria-hidden="true"></span><span><b>Results are still coming in</b> · ${racesIn} of 16 races called. Standings may change as more races are called. · ${rows.length} sealed player${rows.length === 1 ? "" : "s"}</span></p>`;
     html += `<div class="boards">` +
       `<div class="board"><h3>Most winners called</h3><p class="hint">If players call the same number of winners, whoever's margins were closer to the real results ranks higher (see Closest margins).</p><div class="table-wrap"><table><thead><tr><th></th><th>Player</th><th>Winners called</th></tr></thead><tbody>` +
-        winsList.map(r => tr(r, `<td class="m">${r.called} / ${racesIn}</td>`)).join("") +
+        winsList.map(r => tr(r, `<td class="m">${r.called} / ${r.model ? r.of : racesIn}</td>`)).join("") +
       `</tbody></table></div></div>` +
       `<div class="board"><h3>Closest margins</h3><p class="hint">How far off your margins were, on average, in points. Lower is better. Montana doesn't count here.</p>` +
         (byMiss.length
@@ -911,6 +949,7 @@
             missList.map(r => tr(r, `<td class="m">${showMiss(r)}</td>`)).join("") + `</tbody></table></div>`
           : `<p class="score-wait">Appears once a race other than Montana has a result.</p>`) +
       `</div></div>` +
+      models.filter(m => m.missing.length).map(m => `<p class="hint model-note">${esc(m.display_name)} has no forecast for ${m.missing.join(", ")}, so it's scored only on the races it forecast.</p>`).join("") +
       (models.some(m => m.model !== "pf")
         ? `<p class="hint model-note">Forecasts from <a href="https://www.natesilver.net/p/nate-silver-2026-midterm-election-senate-model" target="_blank" rel="noopener">Silver Bulletin</a> and <a href="https://fiftyplusone.news/forecast/senate" target="_blank" rel="noopener">FiftyPlusOne</a> are shown for comparison and are unranked. Party Lines is not affiliated with or endorsed by either. All trademarks are the property of their respective owners.</p>`
         : "");
