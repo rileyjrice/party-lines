@@ -413,3 +413,7 @@ tr.model.mt-pf .model-name { color: var(--ink); }
 .row-pending { padding: 2px 12px 12px; font-size: 12px; color: var(--ink-2); position: relative; z-index: 4; }
 .row-pending span { background: var(--surface); padding: 2px 6px; border-radius: 4px; }
 .row-pending b { font-family: var(--font-data); font-weight: 500; color: var(--ink); }
+
+/* Long leaderboards scroll inside their box instead of stretching the page; headings stay put */
+.board .table-wrap { max-height: 520px; overflow-y: auto; overscroll-behavior: contain; }
+.board thead th { position: sticky; top: 0; z-index: 1; background: var(--surface); }
