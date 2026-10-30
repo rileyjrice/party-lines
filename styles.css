@@ -422,3 +422,6 @@ tr.model.mt-pf .model-name { color: var(--ink); }
 .wordmark-wrap { display: inline-grid; gap: clamp(5px, 0.9vw, 10px); }
 .wm-arrow { display: block; width: 100%; height: auto; }
 .wm-r { fill: var(--red); } .wm-d { fill: var(--blue); }
+/* Results entry: a small results map (or two small maps when entering a model forecast) */
+#maps-sec.compact { justify-self: center; width: 100%; max-width: 520px; }
+#maps-sec.compact-2 { justify-self: center; width: 100%; max-width: 880px; }

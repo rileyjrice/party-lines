@@ -1133,6 +1133,10 @@
     if (pfView && mapsSec.parentNode !== $("pf-map")) $("pf-map").appendChild(mapsSec);
     if (!pfView && mapsSec.parentNode === $("pf-map")) $("line-sec").before(mapsSec);
     mapsSec.classList.toggle("in-pf", pfView);
+    // On Results entry the cards are what matter, so the map(s) above them stay small
+    const entryMaps = member && tab === "results";
+    mapsSec.classList.toggle("compact", entryMaps && entryTarget === "results");
+    mapsSec.classList.toggle("compact-2", entryMaps && entryTarget !== "results");
     $("line-sec").hidden = !game || pfView;
     $("entry-sec").hidden = !member || !(tab === "picks" || tab === "results");
     $("score").hidden = !member || dist || pfView || !(tab === "picks" || tab === "compare");
