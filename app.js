@@ -540,7 +540,7 @@
     const st = BY_ID[ab];
     const name = STATE_NAMES[ab] || ab;
     if (!st) {
-      if (SAFE[ab]) return `<div class="tip-title">${name}</div><div class="tip-row">Senate race in 2026 · <b>Safe ${SAFE[ab]}</b></div><div class="tip-row">Not part of the game</div>`;
+      if (SAFE[ab]) return `<div class="tip-title">${name}</div><div class="tip-row">Senate race in 2026 · <b>Safe ${SAFE[ab]}</b></div><div class="tip-row">Not in play</div>`;
       return `<div class="tip-title">${name}</div><div class="tip-row">No Senate race in 2026</div>`;
     }
     const row = rowByKey[key] || { visible: false, name: "" };
