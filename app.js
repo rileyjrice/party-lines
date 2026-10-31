@@ -1062,7 +1062,7 @@
     }
     const names = Object.fromEntries(players.map(p => [p.id, p.display_name]));
     const rows = everyone.filter(r => names[r.user_id]);
-    head.innerHTML = `<h2>Everyone's picks</h2><p class="panel-lede">${rows.length} sealed player${rows.length === 1 ? "" : "s"}. Each dot is one player's margin, Democrats and independents to the left of even, Republicans to the right. Your pick is ringed. Hover or tap a dot to see whose it is.</p>`;
+    head.innerHTML = `<h2>Everyone's picks</h2><p class="panel-lede">Each dot is one player's margin, Democrats and independents to the left of even, Republicans to the right. Your pick is ringed. Hover or tap a dot to see whose it is.</p>`;
     const layout = distLayout(rows);
     grid.innerHTML = STATES.map(st => distChart(st, rows, names, layout)).join("");
   }
