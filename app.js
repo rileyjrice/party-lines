@@ -576,6 +576,7 @@
     const winner = v < 0 ? st.L : st.R;
     const verb = key === "results" ? (p && p.off ? "won by" : "leads by") : "by";
     if (key === "results" && !(p && p.off)) return html + `<div class="tip-row">${who}: <b>${winner}</b> ${verb} ${trim(Math.abs(v))} pts${chip}</div><div class="tip-row">Provisional margin, still being counted</div>`;
+    if (key !== "results") return html + `<div class="tip-row">${key === "me" ? "You" : esc(row.name)} picked <b>${winner}</b>${chip}</div>`;
     return html + `<div class="tip-row">${who}: <b>${winner}</b> ${verb} ${trim(Math.abs(v))} pts${chip}</div>`;
   }
   let hotPath = null;
