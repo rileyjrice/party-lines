@@ -435,3 +435,8 @@ tr.model.mt-pf .model-name { color: var(--ink); }
 .official input { accent-color: var(--ok); width: 15px; height: 15px; margin: 0; }
 .chip.prov { outline: 1.5px dashed var(--ink-3); outline-offset: 1px; }
 .prov-tag { font-family: var(--font-body); font-size: 10px; color: var(--ink-3); text-transform: uppercase; letter-spacing: 0.04em; }
+
+/* Who runs the game, on the sign-in screen */
+.creator-note { margin: 0; padding: 10px 12px; border-radius: 8px; background: var(--surface-2); font-size: 13px; color: var(--ink-2); max-width: 420px; }
+.creator-note b { color: var(--ink); font-weight: 600; }
+.creator-note a { color: var(--ink); font-weight: 600; text-decoration: underline; text-underline-offset: 2px; }
