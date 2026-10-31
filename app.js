@@ -398,7 +398,8 @@
       items.forEach(it => {
         const c = chipColor(it.st, it.v);
         const chip = document.createElement("div");
-        chip.className = "chip" + (Math.abs(it.v) > D ? " over" + (it.v < 0 ? " left" : "") : "");
+        chip.className = "chip" + (Math.abs(it.v) > D ? " over" + (it.v < 0 ? " left" : "") : "") +
+          (key === "results" && !(docs.results.picks[it.st.id] || {}).off ? " prov" : "");
         chip.style.left = pct(it.v) + "%";
         chip.style.top = (it.lane * laneH + 2) + "px";
         chip.style.background = c.bg;
@@ -565,7 +566,8 @@
     const chip = `<span class="tip-chip" style="background:${c.bg};color:${c.fg}">${fmt(st, v)}</span>`;
     if (Math.abs(v) < 0.05) return html + `<div class="tip-row">${who}: <b>dead even</b>${chip}</div>`;
     const winner = v < 0 ? st.L : st.R;
-    const verb = key === "results" ? "won by" : "by";
+    const verb = key === "results" ? (p && p.off ? "won by" : "leads by") : "by";
+    if (key === "results" && !(p && p.off)) return html + `<div class="tip-row">${who}: <b>${winner}</b> ${verb} ${trim(Math.abs(v))} pts${chip}</div><div class="tip-row">Provisional margin, still being counted</div>`;
     return html + `<div class="tip-row">${who}: <b>${winner}</b> ${verb} ${trim(Math.abs(v))} pts${chip}</div>`;
   }
   let hotPath = null;
@@ -637,6 +639,7 @@
           <button type="button" class="cand L${st.ind ? " ind" : ""}" data-side="L" aria-pressed="false">${st.L}<small>${st.ind ? "IND" : "DEM"}</small></button>
           <button type="button" class="cand R" data-side="R" aria-pressed="false">${st.R}<small>REP</small></button>
         </div>
+        <label class="official" hidden><input type="checkbox" data-role="official"> Official margin</label>
         <label class="by">wins by <input id="pts-${st.id}" type="number" inputmode="decimal" min="0" max="99" step="0.1" placeholder="0.0"> pts</label>
         <p class="learn"><span>Ballotpedia ↗ ${bpA(st.L)} · ${bpA(st.R)}</span>${st.also ? `<button type="button" class="note-btn" popovertarget="note-${st.id}" aria-label="About the ${st.name} race">ⓘ</button>` : ""}</p>${st.also ? `<div class="note-pop" popover id="note-${st.id}"><p><b>${st.name}</b></p><p>Also running: ${bpA(st.also.replace(/ \(.\)$/, ""))} (${st.also.match(/\((.)\)$/)[1]}).${st.winnerOnly ? " Your margin shows on the line and map, but only the winner counts toward your score." : ""}</p><button type="button" class="btn ghost" popovertarget="note-${st.id}" popovertargetaction="hide">Close</button></div>` : ""}`;
       wrap.appendChild(card);
@@ -655,7 +658,11 @@
         b.setAttribute("aria-pressed", String(p.side === b.dataset.side));
         b.disabled = !canEdit;
       });
-      const input = card.querySelector("input");
+      const off = card.querySelector("[data-role=official]");
+      off.closest("label").hidden = editKey() !== "results";
+      off.checked = !!p.off;
+      off.disabled = !canEdit || signed(p) === null; // a race needs a margin before it can be official
+      const input = card.querySelector("input[type=number]");
       input.disabled = !canEdit;
       if (document.activeElement !== input) input.value = (p.pts === null || p.pts === undefined) ? "" : p.pts;
       const v = signed(p);
@@ -689,7 +696,7 @@
           : (callsIn().length ? '<button type="button" class="btn" id="final">Mark results final</button>' : ""));
       note = fin
         ? "The leaderboard shows these as the final standings. Reopen if a result needs to change."
-        : "Select the winner as soon as a race is called; winners called updates right away. Add the margin later, once it's settled. Everyone sees results the moment you enter them.";
+        : "Select the winner as soon as a race is called. Enter the margin at about 95% of expected vote and update it as counting continues. Tick Official margin once the count is essentially complete (99%+) or on Nov 20. Medals wait until all 16 are official.";
     } else {
       title = "Your picks";
       const d = docs.me;
@@ -711,7 +718,7 @@
         [{ id: "results", name: "Results" }].concat(MODELS).map(x =>
           `<button type="button" data-target="${x.id}" aria-pressed="${entryTarget === x.id}">${esc(x.name)}</button>`).join("") + `</div></div>`
       : "";
-    head.innerHTML = `${switcher}<h2>${title}</h2><span class="count">${key === "results" ? `${callsIn().length} / 16 called · ${n} with margins` : `${n} / 16 placed`}</span>${canSave && touched ? `<span class="saved" id="saved-ind">${savedText(key)}</span>` : ""}<span class="spacer"></span>${right}`;
+    head.innerHTML = `${switcher}<h2>${title}</h2><span class="count">${key === "results" ? `${callsIn().length} / 16 called · ${n} with margins · ${STATES.filter(st => (docs.results.picks[st.id] || {}).off).length} official` : `${n} / 16 placed`}</span>${canSave && touched ? `<span class="saved" id="saved-ind">${savedText(key)}</span>` : ""}<span class="spacer"></span>${right}`;
     $("entry-note").textContent = note;
     head.querySelectorAll(".entry-switch button").forEach(b => b.onclick = async () => {
       if (b.dataset.target === entryTarget) return;
@@ -777,8 +784,16 @@
     renderAll();
     if (input && (p.pts === null || p.pts === undefined || p.pts === "")) input.focus();
   });
+  $("cards").addEventListener("change", e => {
+    const box = e.target.closest("[data-role=official]");
+    if (!box || !editable() || editKey() !== "results") return;
+    const id = box.closest(".card").dataset.st;
+    docs.results.picks[id] = { ...(docs.results.picks[id] || {}), off: box.checked };
+    queueWrite("results");
+    renderAll();
+  });
   $("cards").addEventListener("input", e => {
-    const input = e.target.closest("input");
+    const input = e.target.closest("input[type=number]");
     if (!input || !editable()) return;
     const key = editKey();
     const id = input.closest(".card").dataset.st;
@@ -844,7 +859,7 @@
           return `<td class="m ${valClass(r.st, g)}">${fmt(r.st, g)} ${mark}</td>`;
         }).join("") +
         (r.actual !== null
-          ? `<td class="m ${valClass(r.st, r.actual)}">${fmt(r.st, r.actual)}</td></tr>`
+          ? `<td class="m ${valClass(r.st, r.actual)}">${fmt(r.st, r.actual)}${(docs.results.picks[r.st.id] || {}).off ? "" : ' <span class="prov-tag" title="Provisional: still being counted">prov.</span>'}</td></tr>`
           : `<td class="m ${valClass(r.st, r.w)}">${r.w < 0 ? (r.st.ind ? "I" : "D") : "R"} win · margin TBD</td></tr>`)).join("") +
       `</tbody></table></div>`;
     el.innerHTML = html;
@@ -879,7 +894,7 @@
   }
   // Medals are only awarded once all 16 races have results; until then everyone gets a plain number
   function medal(place) {
-    const allIn = entries("results").length === STATES.length;
+    const allIn = STATES.every(st => { const p = docs.results.picks[st.id]; return signed(p) !== null && p.off; });
     return allIn && place <= 3
       ? `<span class="medal m${place}" title="${MEDAL[place]} place" aria-label="${MEDAL[place]} place">${place}</span>`
       : `<span class="medal mx" aria-label="Place ${place}">${place}</span>`;
@@ -958,7 +973,7 @@
       : `<tr class="${r.id === uid() ? "me" : ""}"><td class="place">${medal(r.place)}</td><td>${esc(r.display_name)}${you(r.id)}${grpTag(r)}</td>${cells}</tr>`;
     html += docs.results.final
       ? `<p class="lb-status final"><span class="seal-icon">FINAL</span>All results are in. These are the final standings. · ${rows.length} sealed player${rows.length === 1 ? "" : "s"}</p>`
-      : `<p class="lb-status"><span class="live-dot" aria-hidden="true"></span><span><b>Results are still coming in</b> · ${racesIn} of 16 races called. Standings may change as more races are called. · ${rows.length} sealed player${rows.length === 1 ? "" : "s"}</span></p>`;
+      : `<p class="lb-status"><span class="live-dot" aria-hidden="true"></span><span><b>Results are still coming in</b> · ${racesIn} of 16 races called · ${STATES.filter(st => (docs.results.picks[st.id] || {}).off).length} margins official. Standings may change as races are called and counts are updated. · ${rows.length} sealed player${rows.length === 1 ? "" : "s"}</span></p>`;
     html += `<div class="boards">` +
       `<div class="board"><h3>Most winners called</h3><p class="hint">If players call the same number of winners, whoever's margins were closer to the real results ranks higher (see Closest margins).</p><div class="table-wrap"><table><thead><tr><th></th><th>Player</th><th>Winners called</th></tr></thead><tbody>` +
         winsList.map(r => tr(r, `<td class="m">${r.called} / ${r.model ? r.of : racesIn}</td>`)).join("") +

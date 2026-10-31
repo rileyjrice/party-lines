@@ -429,3 +429,9 @@ tr.model.mt-pf .model-name { color: var(--ink); }
 /* Results map: called states without a margin yet get light diagonal stripes */
 .hatch-line { stroke: rgba(255, 255, 255, 0.55); stroke-width: 2.4; }
 .map-box path.hatch { pointer-events: none; stroke: none; }
+
+/* Provisional vs official margins (results only) */
+.official { display: flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; color: var(--ink-2); }
+.official input { accent-color: var(--ok); width: 15px; height: 15px; margin: 0; }
+.chip.prov { outline: 1.5px dashed var(--ink-3); outline-offset: 1px; }
+.prov-tag { font-family: var(--font-body); font-size: 10px; color: var(--ink-3); text-transform: uppercase; letter-spacing: 0.04em; }
