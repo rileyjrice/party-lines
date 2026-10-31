@@ -500,6 +500,7 @@
         let fill;
         if (BY_ID[ab]) {
           let v = visible ? signed(docs[key].picks[ab]) : null;
+          if (visible && key.startsWith("m_") && v === null) { const fw = forecastWinner(docs[key].picks[ab]); if (fw !== null) v = fw * FULL; }
           if (visible && key === "results") {
             const res = resultOf(ab);
             v = res.called ? (res.v !== null ? res.v : res.w * FULL) : null;
@@ -559,6 +560,7 @@
     const p = docs[key].picks[ab];
     const v = signed(p);
     if (v === null) {
+      if (p && p.side && key.startsWith("m_")) return html + `<div class="tip-row">${who}: <b>${p.side === "L" ? st.L : st.R}</b> favored · no margin published</div>`;
       if (p && p.side && key !== "results") return html + `<div class="tip-row">${who}: <b>${p.side === "L" ? st.L : st.R}</b>, no margin yet</div>`;
       return html + `<div class="tip-row">${who}: <b>${key === "results" ? "not called yet" : "none yet"}</b></div>`;
     }
@@ -826,11 +828,13 @@
       people.forEach(p => {
         const g = signed(docs[p.key].picks[st.id]);
         pr[p.key] = g;
-        if (g === null) return;
+        // models may publish a winner without a margin
+        const fw = g !== null ? sign(g) : (p.key.startsWith("m_") ? forecastWinner(docs[p.key].picks[st.id]) : null);
+        if (fw === null) return;
         const s = stats[p.key];
         s.n++;
-        if (!st.winnerOnly && actual !== null) { s.mn++; s.err += Math.abs(g - actual); }
-        if (sign(g) === w) s.called++;
+        if (!st.winnerOnly && actual !== null && g !== null) { s.mn++; s.err += Math.abs(g - actual); }
+        if (fw === w) s.called++;
       });
       rowsOut.push({ st, actual, w, pr });
     });
@@ -855,7 +859,9 @@
       rowsOut.map(r => `<tr><td>${r.st.name}${r.st.winnerOnly ? ' <span class="tag">Winner only</span>' : ""}</td>` +
         people.map(p => {
           const g = r.pr[p.key];
-          const mark = g === null ? "" : (sign(g) === r.w ? '<span class="mark ok" title="Called the winner">✓</span>' : '<span class="mark miss" title="Missed the winner">✗</span>');
+          const fw = g !== null ? sign(g) : (p.key.startsWith("m_") ? forecastWinner(docs[p.key].picks[r.st.id]) : null);
+          const mark = fw === null ? "" : (fw === r.w ? '<span class="mark ok" title="Called the winner">✓</span>' : '<span class="mark miss" title="Missed the winner">✗</span>');
+          if (g === null && fw !== null) return `<td class="m ${valClass(r.st, fw)}">${fw < 0 ? (r.st.ind ? "I" : "D") : "R"} win ${mark}</td>`;
           return `<td class="m ${valClass(r.st, g)}">${fmt(r.st, g)} ${mark}</td>`;
         }).join("") +
         (r.actual !== null
@@ -868,18 +874,22 @@
   // ---- leaderboard ----
   const winnerOf = v => (Math.abs(v) < 0.05 ? 0 : Math.sign(v));
   // Same scoring as the server's leaderboard(): winners called, and average miss without Montana
-  // Scores a forecast on the called races it covers: winners from every call, misses once a margin is in
+  // A forecast's winner comes from its margin, or from the winner alone when no margin was published
+  const forecastWinner = p => { const g = signed(p); if (g !== null) return winnerOf(g); return p && (p.side === "L" || p.side === "R") ? (p.side === "L" ? -1 : 1) : null; };
+  // Scores a forecast on the called races it covers: winners from every call, misses once both margins exist
   function scoreAgainstResults(picks) {
     let called = 0, of = 0, n = 0, err = 0;
-    const missing = [];
+    const missing = [], winnersOnly = [];
     callsIn().forEach(({ st, v, w }) => {
-      const g = signed(picks[st.id]);
-      if (g === null) { missing.push(st.name); return; }
+      const fw = forecastWinner(picks[st.id]);
+      if (fw === null) { missing.push(st.name); return; }
       of++;
-      if (winnerOf(g) === w) called++;
+      if (fw === w) called++;
+      const g = signed(picks[st.id]);
+      if (g === null) { if (!st.winnerOnly) winnersOnly.push(st.name); return; }
       if (!st.winnerOnly && v !== null) { n++; err += Math.abs(g - v); }
     });
-    return { called, of, missing, avg_miss: n ? err / n : null };
+    return { called, of, missing, winnersOnly, avg_miss: n ? err / n : null };
   }
   function modelScores() {
     const out = MODELS.filter(m => hasModel(m.id)).map(m =>
@@ -985,6 +995,7 @@
           : `<p class="score-wait">Appears once a race other than Montana has a result.</p>`) +
       `</div></div>` +
       models.filter(m => m.missing.length).map(m => `<p class="hint model-note">${esc(m.display_name)} has no forecast for ${m.missing.join(", ")}, so it's scored only on the races it forecast.</p>`).join("") +
+      models.filter(m => m.winnersOnly.length).map(m => `<p class="hint model-note">${esc(m.display_name)} published a winner but no margin for ${m.winnersOnly.join(", ")}, so that race counts toward winners called only.</p>`).join("") +
       (models.some(m => m.model !== "pf")
         ? `<p class="hint model-note">Forecasts from <a href="https://www.natesilver.net/p/nate-silver-2026-midterm-election-senate-model" target="_blank" rel="noopener">Silver Bulletin</a> and <a href="https://fiftyplusone.news/forecast/senate" target="_blank" rel="noopener">FiftyPlusOne</a> are shown for comparison and are unranked. Party Lines is not affiliated with or endorsed by either. All trademarks are the property of their respective owners.</p>`
         : "");
