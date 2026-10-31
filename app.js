@@ -119,7 +119,9 @@
     let d = BASE_D, i = 0, r = BASE_R, open = 0;
     STATES.forEach(st => {
       // results count as soon as a race is called, before its margin is in
-      const v = key === "results" ? resultOf(st.id).w : signed(docs[key].picks[st.id]);
+      const v = key === "results" ? resultOf(st.id).w
+        : key.startsWith("m_") ? forecastWinner(docs[key].picks[st.id]) // a model may publish a winner without a margin
+        : signed(docs[key].picks[st.id]);
       if (v === null || Math.abs(v) < 0.05) open++;
       else if (v > 0) r++;
       else if (st.ind) i++;
@@ -348,7 +350,9 @@
       const list = entries(key);
       // results: called races count in the tally right away; ones without a margin are listed under the line
       const pending = key === "results" ? callsIn().filter(c => c.v === null) : [];
-      const tallyList = key === "results" ? callsIn().map(c => ({ v: c.w })) : list;
+      const tallyList = key === "results" ? callsIn().map(c => ({ v: c.w }))
+        : key.startsWith("m_") ? STATES.map(st => ({ v: forecastWinner(docs[key].picks[st.id]) })).filter(x => x.v !== null)
+        : list;
       if (tallyList.length) {
         const dem = tallyList.filter(e => e.v < -0.04).length, rep = tallyList.filter(e => e.v > 0.04).length, even = tallyList.length - dem - rep;
         const tally = document.createElement("span");
@@ -522,7 +526,9 @@
         return;
       }
       seatsEl.innerHTML = seatBar(seats(key));
-      const list = key === "results" ? callsIn().map(c => ({ v: c.w })) : entries(key);
+      const list = key === "results" ? callsIn().map(c => ({ v: c.w }))
+        : key.startsWith("m_") ? STATES.map(st => ({ v: forecastWinner(docs[key].picks[st.id]) })).filter(x => x.v !== null)
+        : entries(key);
       const dem = list.filter(e => e.v < -0.04).length, rep = list.filter(e => e.v > 0.04).length;
       tally.innerHTML = list.length
         ? `<span class="d">D/I ${dem}</span> · <span class="r">R ${rep}</span>${list.length < 16 ? " · " + (16 - list.length) + " to go" : ""}`
