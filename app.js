@@ -979,7 +979,7 @@
     const winsList = withModels(byWins, (m, r) => m.called > r.called || (m.called === r.called && missKey(m) < missKey(r)));
     const missList = withModels(byMiss, (m, r) => missKey(m) < missKey(r)).filter(r => !(r.model && r.avg_miss === null));
     const tr = (r, cells) => r.model
-      ? `<tr class="model mt-${r.model}"><td class="place"></td><td><span class="model-name">${esc(r.display_name)}</span> <span class="mtag mt-${r.model}">${r.model === "pf" ? "PLAYERS" : "MODEL"}</span></td>${cells}</tr>`
+      ? `<tr class="model mt-${r.model}"><td class="place"></td><td><span class="model-name">${esc(r.display_name)}</span> <span class="mtag mt-${r.model}"${r.model === "pf" ? ' title="The median of all sealed picks in each race"' : ""}>${r.model === "pf" ? "MEDIAN" : "MODEL"}</span></td>${cells}</tr>`
       : `<tr class="${r.id === uid() ? "me" : ""}"><td class="place">${medal(r.place)}</td><td>${esc(r.display_name)}${you(r.id)}${grpTag(r)}</td>${cells}</tr>`;
     html += docs.results.final
       ? `<p class="lb-status final"><span class="seal-icon">FINAL</span>All results are in. These are the final standings. · ${rows.length} sealed player${rows.length === 1 ? "" : "s"}</p>`
