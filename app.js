@@ -26,9 +26,9 @@
   // Model benchmarks: entered by an admin, shown for comparison after picks close, never ranked
   const MODELS = [
     { id: "silver", name: "Silver Bulletin", url: "https://www.natesilver.net/p/nate-silver-2026-midterm-election-senate-model",
-      about: "is Nate Silver's newsletter. Its FLIPR forecast estimates every 2026 Senate race from polling and other data, giving each candidate's chances and projected margin." },
+      about: "come from FLIPR, an election forecasting model designed by Nate Silver. FLIPR combines polling averages with “fundamentals” like each state's partisan lean, incumbency and fundraising, plus expert race ratings, then simulates the election 40,000 times." },
     { id: "fiftyplusone", name: "FiftyPlusOne", url: "https://fiftyplusone.news/forecast/senate",
-      about: "is G. Elliott Morris's election data site. Its forecast blends polling averages, historical fundamentals and expert race ratings, then simulates the election thousands of times to estimate each candidate's chances." },
+      about: "come from an election forecasting model designed by G. Elliott Morris. It combines polling averages with historical “fundamentals” like each state's partisan lean, incumbency and fundraising, plus expert race ratings, then simulates the election 40,000 times." },
   ];
   const modelKey = id => "m_" + id;
   // Senate seats decided before the game: 65 seats not up in 2026 (R 31, D 34 incl. King and Sanders)
@@ -1132,7 +1132,7 @@
     const tm = compareView === "one" && target();
     const mdl = tm && tm.model && MODELS.find(m => m.id === tm.model);
     $("model-about").hidden = !mdl;
-    if (mdl) $("model-about").innerHTML = `<a href="${mdl.url}" target="_blank" rel="noopener">${esc(mdl.name)}</a> ${mdl.about} Shown here: its final forecast before polls closed. Party Lines isn't affiliated with ${esc(mdl.name)}.`;
+    if (mdl) $("model-about").innerHTML = `The predictions from <a href="${mdl.url}" target="_blank" rel="noopener">${esc(mdl.name)}</a> ${mdl.about} Shown here is its final forecast before polls closed. Party Lines isn't affiliated with ${esc(mdl.name)}.`;
     $("cmp-one").hidden = compareView !== "one";
     const sel = $("compare-select");
     const list = comparable();
@@ -1153,7 +1153,7 @@
       const inG = list.filter(p => p.grp === g.key);
       return inG.length ? `<optgroup label="${esc(g.name)}">${inG.map(opt).join("")}</optgroup>` : "";
     }).join("") + (models.length
-      ? `<optgroup label="Forecasting models">${models.map(m => `<option value="model:${m.id}">${esc(m.name)}</option>`).join("")}</optgroup>`
+      ? `<optgroup label="Forecasting Models">${models.map(m => `<option value="model:${m.id}">${esc(m.name)}</option>`).join("")}</optgroup>`
       : "");
     if (sel.dataset.html !== html) { sel.innerHTML = html; sel.dataset.html = html; }
     sel.value = compareId || "";
