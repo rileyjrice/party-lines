@@ -25,8 +25,10 @@
   const GROUP_BY = Object.fromEntries(GROUPS.map(g => [g.key, g]));
   // Model benchmarks: entered by an admin, shown for comparison after picks close, never ranked
   const MODELS = [
-    { id: "silver", name: "Silver Bulletin" },
-    { id: "fiftyplusone", name: "FiftyPlusOne" },
+    { id: "silver", name: "Silver Bulletin", url: "https://www.natesilver.net/p/nate-silver-2026-midterm-election-senate-model",
+      about: "is Nate Silver's newsletter. Its FLIPR forecast estimates every 2026 Senate race from polling and other data, giving each candidate's chances and projected margin." },
+    { id: "fiftyplusone", name: "FiftyPlusOne", url: "https://fiftyplusone.news/forecast/senate",
+      about: "is G. Elliott Morris's election data site. Its forecast blends polling averages, historical fundamentals and expert race ratings, then simulates the election thousands of times to estimate each candidate's chances." },
   ];
   const modelKey = id => "m_" + id;
   // Senate seats decided before the game: 65 seats not up in 2026 (R 31, D 34 incl. King and Sanders)
@@ -1126,6 +1128,11 @@
     bar.hidden = tab !== "compare";
     if (bar.hidden) return;
     document.querySelectorAll("#cmp-view button").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.view === compareView)));
+    // A short introduction when comparing with a forecasting model, for players who don't know it
+    const tm = compareView === "one" && target();
+    const mdl = tm && tm.model && MODELS.find(m => m.id === tm.model);
+    $("model-about").hidden = !mdl;
+    if (mdl) $("model-about").innerHTML = `<a href="${mdl.url}" target="_blank" rel="noopener">${esc(mdl.name)}</a> ${mdl.about} Shown here: its final forecast before polls closed. Party Lines isn't affiliated with ${esc(mdl.name)}.`;
     $("cmp-one").hidden = compareView !== "one";
     const sel = $("compare-select");
     const list = comparable();
@@ -1146,7 +1153,7 @@
       const inG = list.filter(p => p.grp === g.key);
       return inG.length ? `<optgroup label="${esc(g.name)}">${inG.map(opt).join("")}</optgroup>` : "";
     }).join("") + (models.length
-      ? `<optgroup label="Models">${models.map(m => `<option value="model:${m.id}">${esc(m.name)}</option>`).join("")}</optgroup>`
+      ? `<optgroup label="Forecasting models">${models.map(m => `<option value="model:${m.id}">${esc(m.name)}</option>`).join("")}</optgroup>`
       : "");
     if (sel.dataset.html !== html) { sel.innerHTML = html; sel.dataset.html = html; }
     sel.value = compareId || "";
@@ -1195,6 +1202,7 @@
     $("score").hidden = !member || dist || pfView || !(tab === "picks" || tab === "compare");
     $("leaderboard").hidden = !member || tab !== "leaderboard";
     $("compare-bar").hidden = !member || tab !== "compare";
+    if (!member || tab !== "compare") $("model-about").hidden = true;
     if (!member || tab !== "leaderboard") $("headline").hidden = true;
   }
   function renderAll() {

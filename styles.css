@@ -440,3 +440,7 @@ tr.model.mt-pf .model-name { color: var(--ink); }
 .creator-note { margin: 0; padding: 10px 12px; border-radius: 8px; background: var(--surface-2); font-size: 13px; color: var(--ink-2); max-width: 420px; }
 .creator-note b { color: var(--ink); font-weight: 600; }
 .creator-note a { color: var(--ink); font-weight: 600; text-decoration: underline; text-underline-offset: 2px; }
+
+/* Short introduction to a forecasting model on Compare */
+.model-about { margin: -14px 0 0; padding: 10px 12px; border-radius: 8px; background: var(--surface-2); font-size: 13px; color: var(--ink-2); max-width: 760px; }
+.model-about a { color: var(--ink); font-weight: 600; text-decoration: underline; text-underline-offset: 2px; }
