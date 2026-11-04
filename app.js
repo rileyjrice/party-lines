@@ -223,7 +223,7 @@
 
   // ---- the Senate call (leaderboard headline) ----
   // Control is decided once the called races alone settle it: D needs 51 of their own
-  // (Osborn and Bodnar count as independents), R needs 50 (VP tiebreak).
+  // (Osborn and Bodnar count as independents), R needs 50 (VP tiebreak). 54+ D seats is a sweep.
   const SWEEP = ["TX", "MI", "ME", "NC", "GA", "OH", "IA", "AK", "NH", "MN"];
   function senateCall() {
     const sc = seats("results");
@@ -233,7 +233,7 @@
       if (!res.called || res.w === 0) { open++; if (!st.ind) dOpen++; }
     });
     const demWon = id => resultOf(id).w === -1;
-    if (sc.d >= 51) return { sc, party: "d", tier: SWEEP.every(demWon) ? "sweep" : sc.d >= 52 ? "flip" : "narrowly flip" };
+    if (sc.d >= 51) return { sc, party: "d", tier: sc.d >= 54 || SWEEP.every(demWon) ? "sweep" : sc.d >= 52 ? "flip" : "narrowly flip" };
     if (sc.r >= 50) return { sc, party: "r", tier: sc.r >= 52 ? "hold" : "narrowly hold" };
     if (sc.d + dOpen < 51 && sc.r + open < 50) return { sc, party: "i" };
     return null;
@@ -936,7 +936,15 @@
     const g = GROUP_BY[p.grp];
     return lbFilter === "all" && g ? ` <span class="gtag g-${g.key}" title="${esc(g.name)}">${esc(g.code)}</span>` : "";
   };
+  // Redraws (realtime, the 30s poll) replace the tables, so keep each board's scroll position
   function renderBoard() {
+    const el = $("leaderboard");
+    const key = w => lbFilter + "|" + ((w.closest(".board") || {}).querySelector?.("h3")?.textContent || "");
+    const kept = new Map([...el.querySelectorAll(".board .table-wrap")].map(w => [key(w), w.scrollTop]));
+    drawBoard();
+    el.querySelectorAll(".board .table-wrap").forEach(w => { const t = kept.get(key(w)); if (t) w.scrollTop = t; });
+  }
+  function drawBoard() {
     const el = $("leaderboard");
     // Admins (the host) know everyone, so they appear on every group's leaderboard
     const adminIds = new Set(players.filter(p => p.is_admin).map(p => p.id));
