@@ -157,6 +157,7 @@ create table if not exists private.late_entry (
   user_id uuid primary key references public.profiles (id) on delete cascade,
   until timestamptz not null
 );
+alter table private.late_entry enable row level security; -- read only by the security-definer functions below
 
 -- This player's own deadline: the game deadline, or their late-entry window if it's later
 create or replace function private.deadline_for(u uuid) returns timestamptz
