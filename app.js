@@ -1004,7 +1004,7 @@
       ? `<p class="lb-status final"><span class="seal-icon">FINAL</span>All results are in. These are the final standings. · ${rows.length} sealed player${rows.length === 1 ? "" : "s"}</p>`
       : `<p class="lb-status"><span class="live-dot" aria-hidden="true"></span><span><b>Results are still coming in</b> · ${racesIn} of 16 races called · ${STATES.filter(st => (docs.results.picks[st.id] || {}).off).length} margins official. Standings may change as races are called and counts are updated. · ${rows.length} sealed player${rows.length === 1 ? "" : "s"}</span></p>`;
     html += `<div class="boards">` +
-      `<div class="board"><h3>Most winners called</h3><p class="hint">How many race winners you correctly predicted. Ties are given to the player with the smaller average Margin Miss.</p><div class="table-wrap"><table><thead><tr><th></th><th>Player</th><th>Winners called</th></tr></thead><tbody>` +
+      `<div class="board"><h3>Most winners called</h3><p class="hint">How many race winners you correctly predicted. Ties are given to the player with the smaller average margin miss.</p><div class="table-wrap"><table><thead><tr><th></th><th>Player</th><th>Winners called</th></tr></thead><tbody>` +
         winsList.map(r => tr(r, `<td class="m">${r.called} / ${r.model ? r.of : racesIn}</td>`)).join("") +
       `</tbody></table></div></div>` +
       `<div class="board"><h3>Closest margins</h3><p class="hint">How far off your predicted margins were, on average, in points.</p>` +
