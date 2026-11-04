@@ -153,6 +153,27 @@ grant execute on function private.is_member(), private.is_admin(), private.i_hav
 -- ---------------------------------------------------------------------------
 -- Triggers
 -- ---------------------------------------------------------------------------
+create table if not exists private.late_entry (
+  user_id uuid primary key references public.profiles (id) on delete cascade,
+  until timestamptz not null
+);
+
+-- This player's own deadline: the game deadline, or their late-entry window if it's later
+create or replace function private.deadline_for(u uuid) returns timestamptz
+language sql stable security definer set search_path = '' as $$
+  select greatest(
+    (select pick_deadline from private.game_settings where id = 1),
+    (select until from private.late_entry where user_id = u)
+  );
+$$;
+
+create or replace function public.my_deadline() returns timestamptz
+language sql stable security definer set search_path = '' as $$
+  select private.deadline_for((select auth.uid()));
+$$;
+revoke execute on function public.my_deadline() from public, anon;
+grant execute on function public.my_deadline() to authenticated;
+
 create or replace function private.picks_guard() returns trigger
 language plpgsql security definer set search_path = '' as $$
 declare
@@ -161,7 +182,7 @@ begin
   if tg_op = 'UPDATE' and old.sealed then
     raise exception 'These picks are sealed and can''t be changed.';
   end if;
-  select pick_deadline into deadline from private.game_settings where id = 1;
+  deadline := private.deadline_for(new.user_id);
   if deadline is not null and now() >= deadline then
     raise exception 'The pick deadline (Tue Nov 3, 6:00 p.m. ET) has passed.';
   end if;

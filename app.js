@@ -9,7 +9,9 @@
   const SUPABASE_URL = "https://wcfbdchexoirufbzhtop.supabase.co";
   const SUPABASE_KEY = "sb_publishable_FgUu-Su6ytntUPMz4o-ttQ_mhWb5-Zh";
   // Tue Nov 3, 2026, 6:00 p.m. ET. The server holds the real deadline; this only drives the UI.
-  const DEADLINE = Date.parse("2026-11-03T23:00:00Z");
+  // A player given late entry gets their own later deadline from my_deadline() after sign-in.
+  const GAME_DEADLINE = Date.parse("2026-11-03T23:00:00Z");
+  let DEADLINE = GAME_DEADLINE;
 
   const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
     auth: { flowType: "implicit", persistSession: true, autoRefreshToken: true, detectSessionInUrl: true },
@@ -1496,6 +1498,7 @@
     booted = true;
     if (!s) {
       me = null;
+      DEADLINE = GAME_DEADLINE; wasPast = pastDeadline();
       unsubscribe();
       players = []; board = [];
       docs.me = emptyDoc(); docs.them = emptyDoc(); docs.results = { picks: {}, final: false };
@@ -1515,6 +1518,9 @@
       $("join-name").focus();
       return;
     }
+    const dl = await sb.rpc("my_deadline");
+    DEADLINE = !dl.error && dl.data ? Math.max(GAME_DEADLINE, Date.parse(dl.data)) : GAME_DEADLINE;
+    wasPast = pastDeadline();
     if (tab === "results" && !me.is_admin) tab = "picks";
     if (!["picks", "compare", "leaderboard", "rules", "results"].includes(tab)) tab = "picks";
     await loadAll();
