@@ -41,7 +41,7 @@
   // ---- state ----
   let session = null, me = null, booted = false, handledUid = undefined;
   let players = [], board = [];
-  const docs = { me: emptyDoc(), them: emptyDoc(), results: { picks: {}, final: false } };
+  const docs = { me: emptyDoc(), them: emptyDoc(), results: { picks: {}, final: false, final_at: null } };
   MODELS.forEach(m => { docs[modelKey(m.id)] = { picks: {} }; });
   docs.pf = { picks: {} }; // Players' Forecast: per-race medians shaped like picks
   let pfStats = {};        // per race: { n, left, right, median }
@@ -184,8 +184,23 @@
     if (h) return part(h, "hour") + (mm ? ", " + part(mm, "minute") : "");
     return part(mm, "minute");
   }
+  // Once results are marked final, every player sees a thank-you banner in place of the seal reminder
+  function finalWhen(iso) {
+    try {
+      const d = new Date(iso), tz = "America/New_York";
+      return d.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric", timeZone: tz }) + " at " +
+        d.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", timeZone: tz, timeZoneName: "short" });
+    } catch (e) { return ""; }
+  }
   function renderBanner() {
     const el = $("seal-banner");
+    if (me && docs.results.final) {
+      const when = docs.results.final_at ? finalWhen(docs.results.final_at) : "";
+      el.className = "banner done";
+      el.innerHTML = `<p><strong>Thanks for playing Party Lines 2026!</strong> Results are considered "official" as of ${when ? `<b>${when}</b>` : "the time they were marked final"}, though actual margins may shift slightly. See you in 2028!</p>`;
+      el.hidden = false;
+      return;
+    }
     if (!me || docs.me.sealed) { el.hidden = true; return; }
     const filled = STATES.filter(st => { const p = docs.me.picks[st.id]; return p && (p.side === "L" || p.side === "R") && typeof p.pts === "number" && p.pts > 0; }).length;
     const left = DEADLINE - Date.now();
@@ -1346,9 +1361,9 @@
   async function setFinal(value) {
     confirmOpen = false;
     await settle("results");
-    const { data, error } = await sb.from("results").update({ final: value }).eq("id", 1).select("final");
+    const { data, error } = await sb.from("results").update({ final: value }).eq("id", 1).select("*");
     if (error || !data || !data.length) entryError = (error && error.message) || "Only admins can mark results final.";
-    else { docs.results.final = !!data[0].final; entryError = ""; }
+    else { docs.results.final = !!data[0].final; docs.results.final_at = data[0].final_at || null; entryError = ""; }
     renderAll();
   }
   async function seal() {
@@ -1383,8 +1398,8 @@
       const { data } = await sb.from("picks").select("races, sealed, sealed_at").eq("user_id", uid()).maybeSingle();
       docs.me = norm(data);
     } else if (key === "results") {
-      const { data } = await sb.from("results").select("races, final").eq("id", 1).maybeSingle();
-      docs.results = { picks: norm(data).picks, final: !!(data && data.final) };
+      const { data } = await sb.from("results").select("*").eq("id", 1).maybeSingle();
+      docs.results = { picks: norm(data).picks, final: !!(data && data.final), final_at: (data && data.final_at) || null };
     } else if (key.startsWith("m_")) {
       const { data } = await sb.from("benchmarks").select("races").eq("id", key.slice(2)).maybeSingle();
       docs[key].picks = norm(data).picks;
@@ -1449,10 +1464,10 @@
   async function loadAll() {
     const [pk, rs] = await Promise.all([
       sb.from("picks").select("races, sealed, sealed_at").eq("user_id", uid()).maybeSingle(),
-      sb.from("results").select("races, final").eq("id", 1).maybeSingle(),
+      sb.from("results").select("*").eq("id", 1).maybeSingle(),
     ]);
     docs.me = norm(pk.data);
-    docs.results = { picks: norm(rs.data).picks, final: !!(rs.data && rs.data.final) };
+    docs.results = { picks: norm(rs.data).picks, final: !!(rs.data && rs.data.final), final_at: (rs.data && rs.data.final_at) || null };
     themFor = null;
     docs.them = emptyDoc();
     await refreshLists();
@@ -1474,6 +1489,7 @@
         if (payload.new) {
           if (!dirty.results && !inflight.results) docs.results.picks = norm(payload.new).picks;
           docs.results.final = !!payload.new.final;
+          docs.results.final_at = payload.new.final_at || null;
         }
         scheduleRefresh();
         renderAll();
@@ -1510,7 +1526,7 @@
       DEADLINE = GAME_DEADLINE; wasPast = pastDeadline();
       unsubscribe();
       players = []; board = [];
-      docs.me = emptyDoc(); docs.them = emptyDoc(); docs.results = { picks: {}, final: false };
+      docs.me = emptyDoc(); docs.them = emptyDoc(); docs.results = { picks: {}, final: false, final_at: null };
       MODELS.forEach(m => { docs[modelKey(m.id)] = { picks: {} }; });
       docs.pf = { picks: {} }; pfStats = {};
       setStatus("Not signed in", false);
@@ -1528,7 +1544,8 @@
       return;
     }
     const dl = await sb.rpc("my_deadline");
-    DEADLINE = !dl.error && dl.data ? Math.max(GAME_DEADLINE, Date.parse(dl.data)) : GAME_DEADLINE;
+    const mine = !dl.error && typeof dl.data === "string" ? Date.parse(dl.data) : NaN;
+    DEADLINE = Number.isFinite(mine) ? Math.max(GAME_DEADLINE, mine) : GAME_DEADLINE;
     wasPast = pastDeadline();
     if (tab === "results" && !me.is_admin) tab = "picks";
     if (!["picks", "compare", "leaderboard", "rules", "results"].includes(tab)) tab = "picks";

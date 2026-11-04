@@ -63,6 +63,8 @@ create table if not exists public.results (
 );
 -- final: set by an admin once every race is in, so the leaderboard can say the standings are final
 alter table public.results add column if not exists final boolean not null default false;
+-- final_at: when results were marked final (set by results_guard)
+alter table public.results add column if not exists final_at timestamptz;
 insert into public.results (id) values (1) on conflict (id) do nothing;
 
 -- ---------------------------------------------------------------------------
@@ -204,6 +206,11 @@ begin
   perform private.check_races(new.races, false);
   new.updated_at := now();
   new.updated_by := (select auth.uid());
+  -- Stamp the moment results are marked final (server time); clear it on reopen
+  if new.final and (tg_op = 'INSERT' or not old.final) then new.final_at := now();
+  elsif not new.final then new.final_at := null;
+  elsif tg_op = 'UPDATE' then new.final_at := old.final_at;
+  end if;
   return new;
 end;
 $$;
