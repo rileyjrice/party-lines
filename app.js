@@ -929,9 +929,9 @@
     list.forEach((r, i) => { r.place = i > 0 && same(list[i - 1], r) ? list[i - 1].place : i + 1; });
     return list;
   }
-  // Medals are only awarded once all 16 races have results; until then everyone gets a plain number
+  // Medals are awarded once all 16 margins are official, or once an admin marks results final
   function medal(place) {
-    const allIn = STATES.every(st => { const p = docs.results.picks[st.id]; return signed(p) !== null && p.off; });
+    const allIn = docs.results.final || STATES.every(st => { const p = docs.results.picks[st.id]; return signed(p) !== null && p.off; });
     return allIn && place <= 3
       ? `<span class="medal m${place}" title="${MEDAL[place]} place" aria-label="${MEDAL[place]} place">${place}</span>`
       : `<span class="medal mx" aria-label="Place ${place}">${place}</span>`;
