@@ -365,6 +365,8 @@ tr.model .model-name { font-style: italic; font-weight: 600; color: color-mix(in
 .d-lab.d { fill: var(--blue); } .d-lab.r { fill: var(--red); } .d-lab.i { fill: var(--gold); }
 .d-dot { stroke: var(--surface); stroke-width: 0.8; cursor: pointer; }
 .d-ring { fill: none; stroke: var(--ink); stroke-width: 2; pointer-events: none; }
+.d-best { fill: none; stroke: #E8B21E; stroke-width: 2.2; pointer-events: none; }
+.tip-best b { color: inherit; }
 .d-actual { stroke: var(--ink); stroke-width: 1.5; stroke-dasharray: 3 3; }
 .d-actual-lab { font-family: var(--font-data); font-size: 9px; fill: var(--ink); text-anchor: middle; }
 .d-over { font-size: 14px; fill: var(--ink-3); text-anchor: middle; }

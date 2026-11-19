@@ -1067,6 +1067,10 @@
     const overL = vals.some(d => d.v < -D), overR = vals.some(d => d.v > D);
     const r = layout.r, placed = distStack(vals, r);
     const base = H - axisH;
+    // The pick (or tied picks) closest to the actual margin gets a gold ring
+    const miss = v => Math.round(Math.abs(v - actual) * 100) / 100;
+    const bestMiss = actual !== null && vals.length ? Math.min(...vals.map(d => miss(d.v))) : null;
+    const nBest = bestMiss === null ? 0 : vals.filter(d => miss(d.v) === bestMiss).length;
     const lab = v => (v === 0 ? "0" : (v < 0 ? (st.ind ? "I" : "D") : "R") + "+" + Math.abs(v));
     let svg = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${st.name}: ${vals.length} picks">`;
     svg += `<line class="d-axis" x1="${padX}" x2="${W - padX}" y1="${base}" y2="${base}"/>`;
@@ -1078,9 +1082,10 @@
     if (overR) svg += `<text class="d-over" x="${W - padX + 9}" y="${base - 2}">›</text>`;
     placed.forEach(d => {
       const cy = base - r - d.i * 2 * r, c = chipColor(st, d.v);
-      const mine = d.id === uid();
-      svg += `<circle class="d-dot${mine ? " mine" : ""}" cx="${d.cx}" cy="${cy}" r="${Math.max(1, r - 0.6)}" fill="${c.bg}" data-id="${d.id}" data-v="${d.v}" data-st="${st.id}"/>`;
-      if (mine) svg += `<circle class="d-ring" cx="${d.cx}" cy="${cy}" r="${r + 1.6}"/>`;
+      const mine = d.id === uid(), best = bestMiss !== null && miss(d.v) === bestMiss;
+      svg += `<circle class="d-dot${mine ? " mine" : ""}" cx="${d.cx}" cy="${cy}" r="${Math.max(1, r - 0.6)}" fill="${c.bg}" data-id="${d.id}" data-v="${d.v}" data-st="${st.id}"${best ? ` data-miss="${bestMiss}" data-tied="${nBest > 1 ? 1 : 0}"` : ""}/>`;
+      if (best) svg += `<circle class="d-best" cx="${d.cx}" cy="${cy}" r="${r + 1.6}"/>`;
+      if (mine) svg += `<circle class="d-ring" cx="${d.cx}" cy="${cy}" r="${r + (best ? 3.4 : 1.6)}"/>`;
     });
     if (actual !== null) {
       svg += `<line class="d-actual" x1="${x(actual)}" x2="${x(actual)}" y1="${top - 6}" y2="${base}"/><text class="d-actual-lab" x="${x(actual)}" y="${top - 8}">Actual ${fmt(st, actual)}</text>`;
@@ -1097,7 +1102,7 @@
     }
     const names = Object.fromEntries(players.map(p => [p.id, p.display_name]));
     const rows = everyone.filter(r => names[r.user_id]);
-    head.innerHTML = `<h2>Everyone's picks</h2><p class="panel-lede">Each dot is one player's margin, Democrats and independents to the left of even, Republicans to the right. Your pick is ringed. Hover or tap a dot to see whose it is.</p>`;
+    head.innerHTML = `<h2>Everyone's picks</h2><p class="panel-lede">Each dot is one player's margin, Democrats and independents to the left of even, Republicans to the right. Your pick is ringed in black, and the pick closest to the actual margin is ringed in gold. Hover or tap a dot to see whose it is.</p>`;
     const layout = distLayout(rows);
     grid.innerHTML = STATES.map(st => distChart(st, rows, names, layout)).join("");
   }
@@ -1118,7 +1123,10 @@
     const st = BY_ID[dot.dataset.st], v = +dot.dataset.v;
     const p = players.find(x => x.id === dot.dataset.id);
     const c = chipColor(st, v);
-    tip.innerHTML = `<div class="tip-title">${esc(p ? p.display_name : "Player")}${dot.dataset.id === uid() ? " (you)" : ""}</div><div class="tip-row">${st.name}: <span class="tip-chip" style="background:${c.bg};color:${c.fg}">${fmt(st, v)}</span></div>`;
+    const m = dot.dataset.miss;
+    const prov = m !== undefined && !(docs.results.picks[st.id] || {}).off ? " (provisional)" : "";
+    const close = m === undefined ? "" : `<div class="tip-row tip-best">${dot.dataset.tied === "1" ? "Tied for closest" : "Closest pick"}: off by <b>${+m === 0 ? "0" : m} pts</b>${prov}</div>`;
+    tip.innerHTML = `<div class="tip-title">${esc(p ? p.display_name : "Player")}${dot.dataset.id === uid() ? " (you)" : ""}</div><div class="tip-row">${st.name}: <span class="tip-chip" style="background:${c.bg};color:${c.fg}">${fmt(st, v)}</span></div>${close}`;
     tip.hidden = false;
     const rr = tip.getBoundingClientRect();
     let left = e.clientX + 14, topY = e.clientY + 14;
